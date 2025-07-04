@@ -1,0 +1,21 @@
+__pycache__/
+
+#Distribution/Packaging
+build/
+dist/
+*.egg-info/
+
+#installer logs
+pip-log.txt
+
+#virtual environment
+.venv/
+good-vibes-env/
+
+# IDE
+.vscode/
+.idea/
+
+#OS Files
+.DS_Store
+Thumbs.db
