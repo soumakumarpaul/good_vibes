@@ -1,16 +1,17 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy, QPushButton, QLineEdit, QComboBox, QListView, QMessageBox
+from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy, QPushButton, QLineEdit, QComboBox, QListView, QMessageBox
 from PySide6.QtCore import Qt, QRegularExpression, Signal
 from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence, QStandardItem, QStandardItemModel
 from tinydb import Query
 from datetime import datetime
 import re
 
-class NewEmployee(QWidget):
+class NewEmployee(QDialog):
     shared_data = Signal(object)
 
     def __init__(self, db):
         super().__init__()
         self.setWindowTitle("Good Vibes - Customers")
+        self.setModal(True)
         self.setFixedSize(400, 400)
         self.db = db
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
@@ -18,10 +19,6 @@ class NewEmployee(QWidget):
         self.init_shortcut()
 
     def init_shortcut(self):
-        esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
-        esc_shortcut.setContext(Qt.WindowShortcut)
-        esc_shortcut.activated.connect(self.exit)
-
         save_shortcut = QShortcut(QKeySequence.Save, self)
         save_shortcut.setContext(Qt.WindowShortcut)
         save_shortcut.activated.connect(self.save_employee)
