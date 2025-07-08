@@ -10,7 +10,6 @@ class Employee(QWidget):
     def __init__(self, file_path: str):
         super().__init__()
         self.setWindowTitle("Good Vibes - Employee")
-        self.setFixedSize(1200, 800)
         self.file_path = file_path
         self.db = None
         self.init_db()
@@ -24,23 +23,23 @@ class Employee(QWidget):
         self.db = TinyDB(self.file_path + "/employee_db.json")
 
     def init_shortcuts(self):
-        esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
+        esc_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
         esc_shortcut.setContext(Qt.WindowShortcut)
         esc_shortcut.activated.connect(self.close)
 
-        f1_shortcut = QShortcut(QKeySequence(Qt.Key_F1), self)
+        f1_shortcut = QShortcut(QKeySequence("Ctrl+N"), self)
         f1_shortcut.setContext(Qt.WindowShortcut)
         f1_shortcut.activated.connect(self.add_employee)
 
-        f2_shortcut = QShortcut(QKeySequence(Qt.Key_F2), self)
+        f2_shortcut = QShortcut(QKeySequence("Ctrl+E"), self)
         f2_shortcut.setContext(Qt.WindowShortcut)
         f2_shortcut.activated.connect(self.update_employee)
 
-        f4_shortcut = QShortcut(QKeySequence(Qt.Key_F4), self)
+        f4_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
         f4_shortcut.setContext(Qt.WindowShortcut)
         f4_shortcut.activated.connect(self.search_employee)
 
-        f5_shortcut = QShortcut(QKeySequence(Qt.Key_F5), self)
+        f5_shortcut = QShortcut(QKeySequence("Ctrl+R"), self)
         f5_shortcut.setContext(Qt.WindowShortcut)
         f5_shortcut.activated.connect(self.clear_employees)
 
@@ -70,7 +69,7 @@ class Employee(QWidget):
             QLabel {
                 background-color: #7851a9;
                 color: #ffffff;
-                font-size: 30px;
+                font-size: 14px;
                 padding: 20px;
                 text-align: center;
                 border: 1px solid #FFFFFF;
@@ -116,23 +115,23 @@ class Employee(QWidget):
             }
         """
 
-        search_button = QPushButton("Search[F4]")
+        search_button = QPushButton("Search [Ctrl+S]")
         search_button.setStyleSheet(buttons_style)
         search_button.setCursor(Qt.PointingHandCursor)
 
-        clear_button = QPushButton("Reload[F5]")
+        clear_button = QPushButton("Reload [Ctrl+R]")
         clear_button.setStyleSheet(buttons_style)
         clear_button.setCursor(Qt.PointingHandCursor)
 
-        add_button = QPushButton("New[F1]")
+        add_button = QPushButton("New [Ctrl+N]")
         add_button.setStyleSheet(buttons_style)
         add_button.setCursor(Qt.PointingHandCursor)
 
-        update_button = QPushButton("Update[F2]")
+        update_button = QPushButton("Update [Ctrl+E]")
         update_button.setStyleSheet(buttons_style)
         update_button.setCursor(Qt.PointingHandCursor)
 
-        exit_button = QPushButton("Exit[ESC]")
+        exit_button = QPushButton("Exit [Ctrl+X]")
         exit_button.setStyleSheet(buttons_style)
         exit_button.setCursor(Qt.PointingHandCursor)
 

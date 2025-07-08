@@ -13,6 +13,7 @@ class MainWindow(QWidget):
         self.env = Environment()
         self.setWindowTitle("Good Vibes - The Feels Salon Application")
         self.showFullScreen()
+        self.get_db_conf()
         self.init_widgets()
         self.init_shortcuts()
         self.customer_window = None
@@ -21,57 +22,48 @@ class MainWindow(QWidget):
         self.job_window = None
 
     def init_shortcuts(self):
-        job_shortcut = QShortcut(QKeySequence("Ctrl+N"), self)
-        job_shortcut.setContext(Qt.WindowShortcut)
+        job_shortcut = QShortcut(QKeySequence(Qt.Key_F1), self)
+        job_shortcut.setContext(Qt.ApplicationShortcut)
         job_shortcut.activated.connect(self.new_job)
 
         esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
-        esc_shortcut.setContext(Qt.WindowShortcut)
+        esc_shortcut.setContext(Qt.ApplicationShortcut)
         esc_shortcut.activated.connect(self.exit)
 
-        customers_shortcut = QShortcut(QKeySequence(Qt.Key_F1), self)
-        customers_shortcut.setContext(Qt.WindowShortcut)
+        customers_shortcut = QShortcut(QKeySequence(Qt.Key_F2), self)
+        customers_shortcut.setContext(Qt.ApplicationShortcut)
         customers_shortcut.activated.connect(self.open_customers)
 
-        catalog_shortcut = QShortcut(QKeySequence(Qt.Key_F2), self)
-        catalog_shortcut.setContext(Qt.WindowShortcut)
+        catalog_shortcut = QShortcut(QKeySequence(Qt.Key_F3), self)
+        catalog_shortcut.setContext(Qt.ApplicationShortcut)
         catalog_shortcut.activated.connect(self.open_catalog)
 
-        employee_shortcut = QShortcut(QKeySequence(Qt.Key_F3), self)
-        employee_shortcut.setContext(Qt.WindowShortcut)
+        employee_shortcut = QShortcut(QKeySequence(Qt.Key_F4), self)
+        employee_shortcut.setContext(Qt.ApplicationShortcut)
         employee_shortcut.activated.connect(self.open_employee)
 
-        settings_shortcut = QShortcut(QKeySequence(Qt.Key_F5), self)
-        settings_shortcut.setContext(Qt.WindowShortcut)
+        settings_shortcut = QShortcut(QKeySequence(Qt.Key_F6), self)
+        settings_shortcut.setContext(Qt.ApplicationShortcut)
         settings_shortcut.activated.connect(self.select_db)
 
     def init_widgets(self):
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
-        header_label = QLabel("""
-            Hello!!! <b>Good Vibes</b> - 
-            The <span style='font-family: "Carattere"'>Feels</span> 
-            Salon Application""", self)
-        header_label.setTextFormat(Qt.RichText)
-        header_label.setStyleSheet("""
-            QLabel {
-                background-color: #7851a9;
-                color: #ffffff;
-                font-size: 30px;
-                padding: 20px;
-                text-align: center;
-                }
-            """)
-        header_label.setAlignment(Qt.AlignCenter)
-        header_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         # get DB configuration
-        self.settings_lbl: QLabel = self.get_db_conf()
-        layout.addWidget(header_label)
         layout.addWidget(self.init_buttons())
-        layout.addStretch(1)
-        layout.addWidget(self.settings_lbl)
+
+        window_container = QWidget()
+        self.window_layout = QVBoxLayout()
+        self.window_layout.setContentsMargins(0, 0, 0, 0)
+        self.window_layout.setSpacing(0)
+        window_container.setLayout(self.window_layout)
+        window_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        window_container.setMinimumHeight(1)
+        layout.addWidget(window_container)
+        layout.setStretch(0, 0)
+        layout.setStretch(1, 1)
         self.setLayout(layout)
 
     def init_buttons(self):
@@ -91,31 +83,31 @@ class MainWindow(QWidget):
                 border:1px solid #FFFFFF;
             }
         """
-        self.job_button = QPushButton("Jobs [Ctrl+N]")
+        self.job_button = QPushButton("Jobs [F1]")
         self.job_button.setStyleSheet(buttons_style)
         self.job_button.setCursor(Qt.PointingHandCursor)
         self.job_button.clicked.connect(self.new_job)
 
-        self.customers_button = QPushButton("Customers [F1]")
+        self.customers_button = QPushButton("Customers [F2]")
         self.customers_button.setStyleSheet(buttons_style)
         self.customers_button.setCursor(Qt.PointingHandCursor)
         self.customers_button.clicked.connect(self.open_customers)
 
-        self.catalog_button = QPushButton("Services [F2]")
+        self.catalog_button = QPushButton("Services [F3]")
         self.catalog_button.setStyleSheet(buttons_style)
         self.catalog_button.setCursor(Qt.PointingHandCursor)
         self.catalog_button.clicked.connect(self.open_catalog)
 
-        self.employees_button = QPushButton("Employees [F3]")
+        self.employees_button = QPushButton("Employees [F4]")
         self.employees_button.setStyleSheet(buttons_style)
         self.employees_button.setCursor(Qt.PointingHandCursor)
         self.employees_button.clicked.connect(self.open_employee)
 
-        self.payments_button = QPushButton("Payments [F4]")
+        self.payments_button = QPushButton("Payments [F5]")
         self.payments_button.setStyleSheet(buttons_style)
         self.payments_button.setCursor(Qt.PointingHandCursor)
 
-        self.settings_button = QPushButton("Settings [F5]")
+        self.settings_button = QPushButton("Settings [F6]")
         self.settings_button.setStyleSheet(buttons_style)
         self.settings_button.setCursor(Qt.PointingHandCursor)
         self.settings_button.clicked.connect(self.select_db)
@@ -139,12 +131,12 @@ class MainWindow(QWidget):
         self.folder_path = QFileDialog.getExistingDirectory(self, "Select Database Folder")
         if self.folder_path:
             self.env.set_db(self.folder_path)
-            self.settings_lbl.setText("DB_Path: " + self.folder_path)
 
     def open_employee(self):
+        self.clear_layout()
         if self.employee_window is None:
             self.employee_window = Employee(self.folder_path)
-        self.employee_window.show()
+        self.window_layout.addWidget(self.employee_window)
 
     def get_db_conf(self):
         db_path = self.env.get_db()
@@ -179,6 +171,13 @@ class MainWindow(QWidget):
         if self.job_window is None:
             self.job_window = Jobs(self.folder_path)
         self.job_window.show()
+
+    def clear_layout(self):
+        if self.window_layout.count():
+            item = self.window_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
 
         
 

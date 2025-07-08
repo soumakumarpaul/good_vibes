@@ -10,7 +10,7 @@ class Jobs(QWidget):
     def __init__(self, file_path: str):
         super().__init__()
         self.setWindowTitle("Good Vibes - Customers")
-        self.setFixedSize(1200, 800)
+        self.setFixedSize(1600, 800)
         self.file_path = file_path
         self.catalog = []
         self.customer_info = {}
