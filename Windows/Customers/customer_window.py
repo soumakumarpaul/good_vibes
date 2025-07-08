@@ -9,8 +9,6 @@ import re
 class Customers(QWidget):
     def __init__(self, file_path: str):
         super().__init__()
-        self.setWindowTitle("Good Vibes - Customers")
-        self.setFixedSize(1200, 800)
         self.file_path = file_path
         self.db = None
         self.init_db()
@@ -24,9 +22,21 @@ class Customers(QWidget):
         self.db = TinyDB(self.file_path + "/customers_db.json")
 
     def init_shortcuts(self):
-        esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
+        esc_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
         esc_shortcut.setContext(Qt.WindowShortcut)
         esc_shortcut.activated.connect(self.exit_customers)
+
+        new_shortcut = QShortcut(QKeySequence("Ctrl+N"), self)
+        new_shortcut.setContext(Qt.WindowShortcut)
+        new_shortcut.activated.connect(self.add_customer)
+
+        search_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        search_shortcut.setContext(Qt.WindowShortcut)
+        search_shortcut.activated.connect(self.search_customers)
+
+        reload_shortcut = QShortcut(QKeySequence("Ctrl+R"), self)
+        reload_shortcut.setContext(Qt.WindowShortcut)
+        reload_shortcut.activated.connect(self.clear_customers)
     
     def init_widgets(self):
         self.table_view = QTableView()
@@ -63,19 +73,19 @@ class Customers(QWidget):
                 border: 1px solid #FFFFFF;
             }
         """
-        self.search_button = QPushButton("Search[F4]")
+        self.search_button = QPushButton("Search[Ctrl+S]")
         self.search_button.setStyleSheet(buttons_style)
         self.search_button.setCursor(Qt.PointingHandCursor)
-        self.clear_button = QPushButton("Reload[F5]")
+        self.clear_button = QPushButton("Reload[Ctrl+R]]")
         self.clear_button.setStyleSheet(buttons_style)
         self.clear_button.setCursor(Qt.PointingHandCursor)
-        self.add_button = QPushButton("New[F1]")
+        self.add_button = QPushButton("New[Ctrl+N]")
         self.add_button.setStyleSheet(buttons_style)
         self.add_button.setCursor(Qt.PointingHandCursor)
-        self.update_button = QPushButton("Update[F2]")
+        self.update_button = QPushButton("Update[Ctrl+E]")
         self.update_button.setStyleSheet(buttons_style)
         self.update_button.setCursor(Qt.PointingHandCursor)
-        self.exit_button = QPushButton("Exit[ESC]")
+        self.exit_button = QPushButton("Exit[Ctrl+X]")
         self.exit_button.setStyleSheet(buttons_style)
         self.exit_button.setCursor(Qt.PointingHandCursor)
 
@@ -91,7 +101,7 @@ class Customers(QWidget):
             QLabel {
                 background-color: #7851a9;
                 color: #ffffff;
-                font-size: 30px;
+                font-size: 14px;
                 padding: 20px;
                 text-align: center;
                 border: 1px solid #FFFFFF;
@@ -136,8 +146,8 @@ class Customers(QWidget):
         main_layout.addWidget(self.table_view)
 
         self.setLayout(main_layout)
-
         self.load_db()
+        self.search_field.setFocus()
 
     def load_db(self, keyword: str = ""):
         headers = ["ID", "Name", "Phone", "Gender", "Registered On", "Timestamp"]
@@ -168,6 +178,7 @@ class Customers(QWidget):
         self.table_view.verticalHeader().setVisible(False)
 
     def search_customers(self):
+        self.search_field.setFocus()
         keyword = self.search_field.text().strip()
         self.load_db(keyword)
 

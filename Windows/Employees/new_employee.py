@@ -10,11 +10,10 @@ class NewEmployee(QDialog):
 
     def __init__(self, db):
         super().__init__()
-        self.setWindowTitle("Good Vibes - Customers")
         self.setModal(True)
         self.setFixedSize(400, 400)
         self.db = db
-        self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.init_widgets()
         self.init_shortcut()
 

@@ -134,8 +134,7 @@ class MainWindow(QWidget):
 
     def open_employee(self):
         self.clear_layout()
-        if self.employee_window is None:
-            self.employee_window = Employee(self.folder_path)
+        self.employee_window = Employee(self.folder_path)
         self.window_layout.addWidget(self.employee_window)
 
     def get_db_conf(self):
@@ -155,14 +154,14 @@ class MainWindow(QWidget):
         return settings_lbl
     
     def open_customers(self):
-        if self.customer_window is None:
-            self.customer_window = Customers(self.folder_path)
-        self.customer_window.show()
+        self.clear_layout()
+        self.customer_window = Customers(self.folder_path)
+        self.window_layout.addWidget(self.customer_window)
 
     def open_catalog(self):
-        if self.catalog_window is None:
-            self.catalog_window = CatalogWindow(self.folder_path)
-        self.catalog_window.show()
+        self.clear_layout()
+        self.catalog_window = CatalogWindow(self.folder_path)
+        self.window_layout.addWidget(self.catalog_window)
 
     def exit(self):
         self.close()

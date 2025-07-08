@@ -10,8 +10,6 @@ class CatalogWindow(QWidget):
 
     def __init__(self, file_path: str):
         super().__init__()
-        self.setWindowTitle("Good Vibes - Catalog")
-        self.setFixedSize(1200, 800)
         self.file_path = file_path
         self.db = None
         self.records = []
@@ -28,11 +26,11 @@ class CatalogWindow(QWidget):
         self.db = TinyDB(self.file_path + "/catalog_db.json")
 
     def init_shortcuts(self):
-        f4_shortcut = QShortcut(QKeySequence(Qt.Key_F4), self)
-        f5_shortcut = QShortcut(QKeySequence(Qt.Key_F5), self)
-        f1_shortcut = QShortcut(QKeySequence(Qt.Key_F1), self)
-        f2_shortcut = QShortcut(QKeySequence(Qt.Key_F2), self)
-        esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
+        f4_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        f5_shortcut = QShortcut(QKeySequence("Ctrl+R"), self)
+        f1_shortcut = QShortcut(QKeySequence("Ctrl+N"), self)
+        f2_shortcut = QShortcut(QKeySequence("Ctrl+E"), self)
+        esc_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
 
         f4_shortcut.setContext(Qt.WindowShortcut)
         f4_shortcut.activated.connect(self.search_catalog)
@@ -96,7 +94,7 @@ class CatalogWindow(QWidget):
             QLabel {
                 background-color: #7851a9;
                 color: #ffffff;
-                font-size: 30px;
+                font-size: 14px;
                 padding: 20px;
                 text-align: center;
                 border: 1px solid #FFFFFF;
