@@ -1,19 +1,19 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy, QPushButton, QLineEdit, QComboBox, QMessageBox
+from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy, QPushButton, QLineEdit, QComboBox, QMessageBox
 from PySide6.QtCore import Qt, QRegularExpression, Signal
 from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence
 from datetime import datetime
 import re
 
-class NewCustomer(QWidget):
+class NewCustomer(QDialog):
     shared_data = Signal(object)
     
     def __init__(self, db, phone:str = ""):
         super().__init__()
-        self.setWindowTitle("Good Vibes - Customers")
+        self.setModal(True)
         self.setFixedSize(400, 400)
         self.db = db
         self.phone = phone
-        self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.init_widgets()
         self.init_shortcut() 
 
