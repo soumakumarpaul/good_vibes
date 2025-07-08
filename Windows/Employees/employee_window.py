@@ -61,6 +61,7 @@ class Employee(QWidget):
 
         self.setLayout(main_layout)
         self.load_db()
+        self.search_bar.setFocus()
 
     def init_header(self):
         header_label = QLabel("""<b>Employee Unit</b>""", self)
@@ -201,6 +202,7 @@ class Employee(QWidget):
         self.close()
 
     def search_employee(self):
+        self.search_bar.setFocus()
         keyword = self.search_bar.text().strip()
         self.load_db(keyword)
 
