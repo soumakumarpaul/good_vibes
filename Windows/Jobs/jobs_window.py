@@ -5,12 +5,11 @@ from tinydb import TinyDB, Query
 from PySide6.QtWidgets import QAbstractItemView
 import re
 from functools import partial
+from Windows.Customers.new_customer import NewCustomer
 
 class Jobs(QWidget):
     def __init__(self, file_path: str):
         super().__init__()
-        self.setWindowTitle("Good Vibes - Customers")
-        self.setFixedSize(1600, 800)
         self.file_path = file_path
         self.catalog = []
         self.customer_info = {}
@@ -20,7 +19,7 @@ class Jobs(QWidget):
         self.init_widgets()
 
     def init_shortcuts(self):
-        exit_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
+        exit_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
         exit_shortcut.setContext(Qt.WindowShortcut)
         exit_shortcut.activated.connect(self.exit)
 
@@ -50,11 +49,22 @@ class Jobs(QWidget):
         if re.match(r"^[6-9]\d{9}$", phone_number):
             db = TinyDB(self.file_path + "/customers_db.json")
             Customer: Query = Query()
-            self.customer_info = db.search(Customer.mobile == phone_number)[0]
+            results = db.search(Customer.mobile == phone_number)
+            if results == []:
+                print("Heelo")
+                self.add_customer = NewCustomer(db, phone_number)
+                self.add_customer.shared_data.connect(self.get_new_customer)
+                self.add_customer.exec()
+            else:
+                self.customer_info = results[0]
             db.close()
             self.customer_name_field.setText(self.customer_info["name"])
             membership_details = self.customer_info.get("membership", {})
             self.membership_points.setText(f"Points: {membership_details.get("points", 0)}")
+
+    def get_new_customer(self, data):
+        self.customer_name_field.setText(data.get("Name"))
+        self.membership_points.setText("Points: 0")
     
     def init_widgets(self):
         main_layout = QVBoxLayout()
@@ -75,7 +85,7 @@ class Jobs(QWidget):
             QLabel {
                 background-color: #7851a9;
                 color: #ffffff;
-                font-size: 30px;
+                font-size: 14px;
                 padding: 20px;
                 text-align: center;
                 border: 1px solid #FFFFFF;
@@ -154,6 +164,7 @@ class Jobs(QWidget):
   
     def init_service_picker(self):
         service_container = QWidget()
+        service_container.setMinimumWidth(900)
         service_container.setContentsMargins(0, 0, 0, 0)
         service_container.setStyleSheet("border: 1px solid #ffffff;")
         layout = QHBoxLayout(service_container)
