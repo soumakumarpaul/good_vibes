@@ -191,7 +191,7 @@ class Customers(QWidget):
         self.close()
 
     def add_customer(self):
-        self.new_customer_window = NewCustomer(self.db, self.search_field.text().strip())
+        self.new_customer_window = NewCustomer(self.search_field.text().strip())
         self.new_customer_window.shared_data.connect(self.execute_new_customer)
         self.new_customer_window.show()
 

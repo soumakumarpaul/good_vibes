@@ -24,7 +24,7 @@ class MainWindow(QWidget):
     def init_shortcuts(self):
         job_shortcut = QShortcut(QKeySequence(Qt.Key_F1), self)
         job_shortcut.setContext(Qt.ApplicationShortcut)
-        job_shortcut.activated.connect(self.new_job)
+        job_shortcut.activated.connect(self.open_jobs)
 
         esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
         esc_shortcut.setContext(Qt.ApplicationShortcut)
@@ -86,7 +86,7 @@ class MainWindow(QWidget):
         self.job_button = QPushButton("Jobs [F1]")
         self.job_button.setStyleSheet(buttons_style)
         self.job_button.setCursor(Qt.PointingHandCursor)
-        self.job_button.clicked.connect(self.new_job)
+        self.job_button.clicked.connect(self.open_jobs)
 
         self.customers_button = QPushButton("Customers [F2]")
         self.customers_button.setStyleSheet(buttons_style)
@@ -166,17 +166,18 @@ class MainWindow(QWidget):
     def exit(self):
         self.close()
 
-    def new_job(self):
-        if self.job_window is None:
-            self.job_window = Jobs(self.folder_path)
-        self.job_window.show()
+    def open_jobs(self):
+        self.clear_layout()
+        self.job_window = Jobs(self.folder_path)
+        self.window_layout.addWidget(self.job_window)
 
     def clear_layout(self):
         if self.window_layout.count():
             item = self.window_layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
-                widget.setParent(None)
+                widget.close()
+                widget.deleteLater()
 
         
 

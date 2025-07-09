@@ -3,6 +3,7 @@ from PySide6.QtCore import Qt, QRegularExpression, Signal
 from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence
 from datetime import datetime
 import re
+from tinydb import TinyDB
 
 class NewCustomer(QDialog):
     shared_data = Signal(object)
