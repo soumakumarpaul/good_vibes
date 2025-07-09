@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGridLayout, QListView, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout, QTableView, QHeaderView
+from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGridLayout, QListView, QListWidget, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout, QTableView, QHeaderView
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QKeySequence, QShortcut
 from PySide6.QtCore import Qt
 from tinydb import TinyDB, Query
@@ -15,6 +15,7 @@ class Jobs(QWidget):
         self.catalog = []
         self.customer_info = {}
         self.service_results = []
+        self.job_details = {"services": [], "gross_total": 0, "discount": 0, "net_amount": 0} # This is the invoice details.
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.init_shortcuts()
         self.init_widgets()
@@ -321,7 +322,15 @@ class Jobs(QWidget):
             item = self.service_list_model.itemFromIndex(index)
             service_details = item.data(Qt.UserRole)
             self.service_dialog = ServiceDialog(self.file_path, service_details)
+            self.service_dialog.service_data.connect(self.add_service_invoice)
             self.service_dialog.exec()
+
+    # Adding service to invoice
+    def add_service_invoice(self, service_data):
+        self.job_details["services"].append(service_data)
+        discount = self.job_details["discount"]
+        net_amount = self.job_details["net_amount"]
+        self.reinitialize_invoice_amount()
 
     def init_invoice_layout(self):
         invoice_layout = QVBoxLayout()
@@ -330,34 +339,110 @@ class Jobs(QWidget):
 
         invoice_layout.addWidget(self.init_customer())
         invoice_layout.addWidget(self.invoice_view())
+        invoice_layout.addLayout(self.invoice_total_view())
+        invoice_layout.addStretch(1)
+        invoice_layout.addLayout(self.job_actions())
 
         return invoice_layout
     
     def invoice_view(self):
-        invoice_table = QTableView()
-        invoice_table.setStyleSheet("""
-            QTableView {
-                background-color: #ffffff;
-                color: #7851a9;
-                gridline-color: #7851a9;
-                font-size: 20px;
-            }
-            QHeaderView::Section {
-                background-color: #2c2c2c;
+        self.invoice_list = QListWidget()
+        return self.invoice_list
+
+    def invoice_total_view(self):
+        amount_layout = QVBoxLayout()
+
+        invoice_total_style = """
+            QLabel {
                 font-weight: bold;
-                color: #c0c0c0;
+                color: 2c2c2c;
+                border-bottom: 1px solid #2c2c2c;
+                font-size: 30px;
             }
-            QTableView::item:selected {
+        """
+
+        #Gross Total
+        gross_layout = QHBoxLayout()
+        gross_label = QLabel("Gross:")
+        gross_label.setStyleSheet(invoice_total_style)
+        self.gross_amt_label = QLabel("₹{:.2f}".format(self.job_details["gross_total"]))
+        self.gross_amt_label.setStyleSheet(invoice_total_style)
+        gross_layout.addWidget(gross_label)
+        gross_layout.addStretch()
+        gross_layout.addWidget(self.gross_amt_label)
+
+        #Discount Total
+        discount_layout = QHBoxLayout()
+        discount_label = QLabel("Discount:")
+        discount_label.setStyleSheet(invoice_total_style)
+        self.discount_amt_label = QLabel("₹{:.2f}".format(self.job_details["discount"]))
+        self.discount_amt_label.setStyleSheet(invoice_total_style)
+        discount_layout.addWidget(discount_label)
+        discount_layout.addStretch()
+        discount_layout.addWidget(self.discount_amt_label)
+
+        #Net Amount
+        net_layout = QHBoxLayout()
+        net_label = QLabel("Total:")
+        net_label.setStyleSheet(invoice_total_style)
+        self.net_amt_label = QLabel("₹{:.2f}".format(self.job_details["net_amount"]))
+        self.net_amt_label.setStyleSheet(invoice_total_style)
+        net_layout.addWidget(net_label)
+        net_layout.addStretch()
+        net_layout.addWidget(self.net_amt_label)
+
+        amount_layout.addLayout(gross_layout)
+        amount_layout.addLayout(discount_layout)
+        amount_layout.addLayout(net_layout)
+
+        return amount_layout
+    
+    def job_actions(self):
+        actions_layout = QHBoxLayout()
+
+        #Buttons
+        buttons_style = """
+            QPushButton {
+                font-size: 20px;
+                font-weight: bold;
+                color: "#7851a9";
+                padding: 10px;
+                margin: 15px;
+                background-color: #e5c8dc;
+            }
+            QPushButton:hover {
                 background-color: #7851a9;
                 color: #FFFFFF;
-                border-color: #C0C0C0;
             }
-        """)
-        invoice_table.setEditTriggers(QTableView.NoEditTriggers)
-        invoice_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        invoice_table.setSelectionMode(QAbstractItemView.SingleSelection)
-        invoice_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        invoice_table.verticalHeader().setVisible(False)
-        return invoice_table
+        """
+
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setStyleSheet(buttons_style)
+        save_btn = QPushButton("Save")
+        save_btn.setStyleSheet(buttons_style)
+        invoice_btn = QPushButton("Invoice")
+        invoice_btn.setStyleSheet(buttons_style)
+
+        actions_layout.addWidget(cancel_btn)
+        actions_layout.addWidget(save_btn)
+        actions_layout.addWidget(invoice_btn)
+
+        return actions_layout
+    
+    def reinitialize_invoice_amount(self):
+        gross_total = 0
+        discount = 0
+        net_amount = 0
+        for service in self.job_details["services"]:
+            gross_total += float(service['rate']) * int(service['quantity'])
+            net_amount += float(service['price'])
+
+        self.job_details['gross_total'] = gross_total
+        self.job_details['net_amount'] = net_amount
+        self.job_details['discount'] = gross_total - net_amount
+        self.gross_amt_label.setText("₹{:.2f}".format(self.job_details["gross_total"]))
+        self.discount_amt_label.setText("₹{:.2f}".format(self.job_details["discount"]))
+        self.net_amt_label.setText("₹{:.2f}".format(self.job_details["net_amount"]))
+
 
 

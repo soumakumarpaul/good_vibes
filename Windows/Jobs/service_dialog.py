@@ -234,6 +234,7 @@ class ServiceDialog(QDialog):
     def compute_net_amount(self, discount: str):
         rate = float(self.txt_price.text())
         quantity = int(self.txt_qty.text())
+        print(discount)
         discount = float(discount)
         if discount > 100:
             alert = QMessageBox()
@@ -290,7 +291,7 @@ class ServiceDialog(QDialog):
         Validate the form and save the service.
         This is also used to update the service.
         '''
-        if self.server_combo.currentText != "" and self.server_combo.currentText() == self.helper_combo.currentText():
+        if self.server_combo.currentText() != "" and self.server_combo.currentText() == self.helper_combo.currentText():
             alert = QMessageBox()
             alert.setWindowTitle("Success")
             alert.setText("Server and Helper for a service should not be same.")
@@ -307,6 +308,7 @@ class ServiceDialog(QDialog):
             "helper": self.helper_combo.currentText()
         }
         self.service_data.emit(response)
+        self.close()
 
     # Get the employee names
     def init_employees(self):
