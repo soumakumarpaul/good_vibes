@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QAbstractItemView
 import re
 from functools import partial
 from Windows.Customers.new_customer import NewCustomer
+from .service_dialog import ServiceDialog
 
 class Jobs(QWidget):
     def __init__(self, file_path: str):
@@ -294,6 +295,8 @@ class Jobs(QWidget):
         self.services_list.setWordWrap(False)
         self.services_list.setUniformItemSizes(True)
 
+        self.services_list.clicked.connect(self.on_service_selected)
+
         services_layout.addWidget(search_bar)
         services_layout.addWidget(self.services_list)
 
@@ -309,7 +312,16 @@ class Jobs(QWidget):
             service_item.setToolTip(item["name"])
             service_item.setData(item, Qt.UserRole)
             model.appendRow(service_item)
+        self.service_list_model = model
         self.services_list.setModel(model)
+
+    # Select the service from the service picker
+    def on_service_selected(self, index):
+        if self.service_list_model:
+            item = self.service_list_model.itemFromIndex(index)
+            service_details = item.data(Qt.UserRole)
+            self.service_dialog = ServiceDialog(self.file_path, service_details)
+            self.service_dialog.exec()
 
     def init_invoice_layout(self):
         invoice_layout = QVBoxLayout()

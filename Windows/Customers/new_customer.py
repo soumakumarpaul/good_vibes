@@ -55,7 +55,7 @@ class NewCustomer(QDialog):
             QLabel {
                 background-color: #7851a9;
                 color: #ffffff;
-                font-size: 30px;
+                font-size: 14px;
                 padding: 20px;
                 text-align: center;
                 border: 1px solid #FFFFFF;
