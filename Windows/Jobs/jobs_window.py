@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGridLayout, QListView, QListWidget, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout, QTableView, QHeaderView
+from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGridLayout, QListView, QListWidget, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout, QMessageBox, QListWidgetItem
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QKeySequence, QShortcut
 from PySide6.QtCore import Qt
 from tinydb import TinyDB, Query
@@ -7,6 +7,7 @@ import re
 from functools import partial
 from Windows.Customers.new_customer import NewCustomer
 from .service_dialog import ServiceDialog
+from .invoice_item_widget import InvoiceItemWidget
 
 class Jobs(QWidget):
     def __init__(self, file_path: str):
@@ -34,7 +35,12 @@ class Jobs(QWidget):
         invoice_shortcut.activated.connect(self.invoice)
 
     def exit(self):
-        self.close()
+        reply = QMessageBox.question(self, 
+                                     "Confirmation", 
+                                     "Are you sure you do not want to save the job?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.close()
 
     def save(self):
         pass
@@ -331,6 +337,7 @@ class Jobs(QWidget):
         discount = self.job_details["discount"]
         net_amount = self.job_details["net_amount"]
         self.reinitialize_invoice_amount()
+        self.add_service_to_invoice_list(service_data)
 
     def init_invoice_layout(self):
         invoice_layout = QVBoxLayout()
@@ -338,16 +345,36 @@ class Jobs(QWidget):
         invoice_layout.setSpacing(0)
 
         invoice_layout.addWidget(self.init_customer())
-        invoice_layout.addWidget(self.invoice_view())
+        invoice_layout.addWidget(self.invoice_view(), 1)
+        invoice_layout.addStretch()
         invoice_layout.addLayout(self.invoice_total_view())
-        invoice_layout.addStretch(1)
         invoice_layout.addLayout(self.job_actions())
-
         return invoice_layout
     
     def invoice_view(self):
         self.invoice_list = QListWidget()
+        self.invoice_list.setStyleSheet("""
+        QListWidget {
+            background-color: #ffffff;
+            border: 1px solid #7851a9;
+        }
+        QListWidget::item {
+            border-bottom: 1px solid #7851a9;
+        }
+        QListWidget::item:selected {
+            background-color: #f2f2f2;
+        }
+        """)
+        for service in self.job_details['services']:
+            self.add_service_to_invoice_list(service)
         return self.invoice_list
+    
+    def add_service_to_invoice_list(self, service):
+        item = QListWidgetItem()
+        widget = InvoiceItemWidget(service)
+        item.setSizeHint(widget.sizeHint())
+        self.invoice_list.addItem(item)
+        self.invoice_list.setItemWidget(item, widget)
 
     def invoice_total_view(self):
         amount_layout = QVBoxLayout()
@@ -357,7 +384,8 @@ class Jobs(QWidget):
                 font-weight: bold;
                 color: 2c2c2c;
                 border-bottom: 1px solid #2c2c2c;
-                font-size: 30px;
+                font-size: 20px;
+                padding:10px;
             }
         """
 
@@ -427,11 +455,13 @@ class Jobs(QWidget):
         actions_layout.addWidget(save_btn)
         actions_layout.addWidget(invoice_btn)
 
+        cancel_btn.clicked.connect(self.exit)
+
         return actions_layout
     
+    # Computing the invoice amount
     def reinitialize_invoice_amount(self):
         gross_total = 0
-        discount = 0
         net_amount = 0
         for service in self.job_details["services"]:
             gross_total += float(service['rate']) * int(service['quantity'])

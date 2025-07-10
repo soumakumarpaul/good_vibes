@@ -5,19 +5,19 @@ class InvoiceItemWidget(QWidget):
     def __init__(self, service_details):
         super().__init__()
         self.service = service_details
-
         layout = QVBoxLayout(self)
-        layout.addWidget(self.init_header())
+        layout.addWidget(self.init_header(), 1)
         layout.addLayout(self.init_particulars())
         layout.addLayout(self.init_servers())
-        layout.setContentsMargins(5, 2, 5, 2)
+        layout.setContentsMargins(8, 6, 8, 6)
+        layout.setSpacing(4)
 
     # Header Label - Service Name
     def init_header(self):
-        service_label = QLabel(self.service.get("name", ""))
+        service_label = QLabel(self.service.get("service", ""))
         service_label.setStyleSheet("""
             QLabel{
-                font-weight: bold,
+                font-weight: bold;
                 font-size: 16px;
                 color: #7851a9;
             }
@@ -30,7 +30,7 @@ class InvoiceItemWidget(QWidget):
         
         secondary_label = """
             QLabel{
-                font-size: 12px;
+                font-size: 14px;
                 color: #7851a9;
             }
         """
@@ -57,7 +57,7 @@ class InvoiceItemWidget(QWidget):
 
         secondary_label = """
             QLabel{
-                font-size: 10px;
+                font-size: 12px;
                 color: #7851a9;
             }
         """
@@ -66,8 +66,11 @@ class InvoiceItemWidget(QWidget):
         helper = self.service.get("helper")
         helper = helper if helper else "NA"
         server_label = QLabel(server)
+        server_label.setStyleSheet(secondary_label)
         divider = QLabel("X")
+        divider.setStyleSheet(secondary_label)
         helper_label = QLabel(helper)
+        helper_label.setStyleSheet(secondary_label)
 
         servers_layout.addWidget(server_label)
         servers_layout.addStretch()
