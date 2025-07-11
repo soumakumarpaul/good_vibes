@@ -37,7 +37,7 @@ class Jobs(QWidget):
     def exit(self):
         reply = QMessageBox.question(self, 
                                      "Confirmation", 
-                                     "Are you sure you do not want to save the job?",
+                                     "Cancel without Saving the Job?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.close()
@@ -314,8 +314,8 @@ class Jobs(QWidget):
         items = [item for item in self.service_results
                  if all(word in item.get("name", "").lower() for word in keyword)]
         for item in items:
-            service_item = QStandardItem(item["name"])
-            service_item.setToolTip(item["name"])
+            service_item = QStandardItem(item["service"])
+            service_item.setToolTip(item["service"])
             service_item.setData(item, Qt.UserRole)
             model.appendRow(service_item)
         self.service_list_model = model
@@ -332,12 +332,11 @@ class Jobs(QWidget):
 
     # Adding service to invoice
     def add_service_invoice(self, service_data):
-        self.job_details["services"].append(service_data)
-        discount = self.job_details["discount"]
-        net_amount = self.job_details["net_amount"]
-        self.reinitialize_invoice_amount()
-        index = len(self.job_details['services']) - 1
-        self.add_service_to_invoice_list(service_data, index)
+        if service_data != None:
+            self.job_details["services"].append(service_data)
+            self.reinitialize_invoice_amount()
+            index = len(self.job_details['services'])
+            self.add_service_to_invoice_list(service_data, index)
 
     def init_invoice_layout(self):
         invoice_layout = QVBoxLayout()
@@ -376,7 +375,8 @@ class Jobs(QWidget):
         item.setSizeHint(widget.sizeHint())
         self.invoice_list.addItem(item)
         self.invoice_list.setItemWidget(item, widget)
-        widget.delete_button.clicked.connect(lambda: self.delete_service_from_invoice(index))
+        widget.delete_button.clicked.connect(lambda: self.delete_service_from_invoice(index-1))
+        widget.edit_button.clicked.connect(lambda: self.edit_service_from_invoice(index-1))
 
     def delete_service_from_invoice(self, index):
         reply = QMessageBox.question(self, "Confirmation",
@@ -389,6 +389,24 @@ class Jobs(QWidget):
             del item
             self.reinitialize_invoice_amount()
 
+    def edit_service_from_invoice(self, index):
+        self.service_dialog = ServiceDialog(self.file_path, self.job_details['services'][index])
+        self.service_dialog.service_data.connect(lambda data: self.update_service_invoice(data, index))
+        self.service_dialog.exec()
+
+    def update_service_invoice(self, service_data, index):
+        if service_data != None:
+            service = self.job_details['services'][index]
+            service['rate'] = service_data['rate']
+            service['discount'] = service_data['discount']
+            service['quantity'] = service_data['quantity']
+            service['price'] = service_data['price']
+            service['server'] = service_data['server']
+            service['helper'] = service_data['helper']
+            self.invoice_list.clear()
+            for index, service in enumerate(self.job_details['services']):
+                self.add_service_to_invoice_list(service, index)
+            
 
     def invoice_total_view(self):
         amount_layout = QVBoxLayout()

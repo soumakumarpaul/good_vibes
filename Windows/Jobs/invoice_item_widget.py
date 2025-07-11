@@ -22,7 +22,7 @@ class InvoiceItemWidget(QWidget):
         layout = QHBoxLayout(header_container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        service_label = QLabel(f"{self.index}. {self.service.get("service", "")}")
+        service_label = QLabel(f"{self.service.get("service", "")}")
         service_label.setStyleSheet("""
             QLabel{
                 font-weight: bold;
@@ -68,7 +68,8 @@ class InvoiceItemWidget(QWidget):
         rate_label = QLabel(f"₹{self.service['rate']} x {self.service['quantity']}")
         rate_label.setStyleSheet(secondary_label)
 
-        discount_label = QLabel(f"Less: {self.service['discount']}%")
+        discount = "{:.2f}".format(float(self.service['discount']))
+        discount_label = QLabel(f"Less: {discount}%")
         discount_label.setStyleSheet(secondary_label)
 
         total_label = QLabel(f"₹{self.service['price']}")
