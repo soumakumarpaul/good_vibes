@@ -234,8 +234,10 @@ class ServiceDialog(QDialog):
     def compute_net_amount(self, discount: str):
         rate = float(self.txt_price.text())
         quantity = int(self.txt_qty.text())
-        print(discount)
-        discount = float(discount)
+        try:
+            discount = float(discount)
+        except:
+            discount = 0
         if discount > 100:
             alert = QMessageBox()
             alert.setWindowTitle("Success")

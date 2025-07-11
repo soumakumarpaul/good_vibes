@@ -59,19 +59,18 @@ class Jobs(QWidget):
             Customer: Query = Query()
             results = db.search(Customer.mobile == phone_number)
             if results == []:
-                print("Heelo")
                 self.add_customer = NewCustomer(db, phone_number)
                 self.add_customer.shared_data.connect(self.get_new_customer)
                 self.add_customer.exec()
             else:
                 self.customer_info = results[0]
             db.close()
-            self.customer_name_field.setText(self.customer_info["name"])
+            self.customer_name_field.setText(self.customer_info.get("name", ""))
             membership_details = self.customer_info.get("membership", {})
             self.membership_points.setText(f"Points: {membership_details.get("points", 0)}")
 
     def get_new_customer(self, data):
-        self.customer_name_field.setText(data.get("Name"))
+        self.customer_name_field.setText(data.get("name"))
         self.membership_points.setText("Points: 0")
     
     def init_widgets(self):
