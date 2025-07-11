@@ -336,7 +336,8 @@ class Jobs(QWidget):
         discount = self.job_details["discount"]
         net_amount = self.job_details["net_amount"]
         self.reinitialize_invoice_amount()
-        self.add_service_to_invoice_list(service_data)
+        index = len(self.job_details['services']) - 1
+        self.add_service_to_invoice_list(service_data, index)
 
     def init_invoice_layout(self):
         invoice_layout = QVBoxLayout()
@@ -364,16 +365,30 @@ class Jobs(QWidget):
             background-color: #f2f2f2;
         }
         """)
-        for service in self.job_details['services']:
-            self.add_service_to_invoice_list(service)
+        for index, service in enumerate(self.job_details['services']):
+            self.add_service_to_invoice_list(service, index)
         return self.invoice_list
     
-    def add_service_to_invoice_list(self, service):
+    def add_service_to_invoice_list(self, service, index):
         item = QListWidgetItem()
-        widget = InvoiceItemWidget(service)
+        widget = InvoiceItemWidget(service, index)
+        widget.adjustSize()
         item.setSizeHint(widget.sizeHint())
         self.invoice_list.addItem(item)
         self.invoice_list.setItemWidget(item, widget)
+        widget.delete_button.clicked.connect(lambda: self.delete_service_from_invoice(index))
+
+    def delete_service_from_invoice(self, index):
+        reply = QMessageBox.question(self, "Confirmation",
+                                     f"Do you want to delete - {self.job_details['services'][index]['service']}?", 
+                                     QMessageBox.Yes | QMessageBox.No,
+                                     QMessageBox.No)
+        if(reply == QMessageBox.Yes):
+            del(self.job_details['services'][index])
+            item = self.invoice_list.takeItem(index)
+            del item
+            self.reinitialize_invoice_amount()
+
 
     def invoice_total_view(self):
         amount_layout = QVBoxLayout()
