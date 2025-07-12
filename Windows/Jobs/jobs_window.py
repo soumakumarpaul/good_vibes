@@ -335,8 +335,7 @@ class Jobs(QWidget):
         if service_data != None:
             self.job_details["services"].append(service_data)
             self.reinitialize_invoice_amount()
-            index = len(self.job_details['services'])
-            self.add_service_to_invoice_list(service_data, index)
+            self.add_service_to_invoice_list(service_data)
 
     def init_invoice_layout(self):
         invoice_layout = QVBoxLayout()
@@ -364,21 +363,23 @@ class Jobs(QWidget):
             background-color: #f2f2f2;
         }
         """)
-        for index, service in enumerate(self.job_details['services']):
-            self.add_service_to_invoice_list(service, index)
+        for service in self.job_details['services']:
+            self.add_service_to_invoice_list(service)
         return self.invoice_list
     
-    def add_service_to_invoice_list(self, service, index):
+    def add_service_to_invoice_list(self, service):
         item = QListWidgetItem()
-        widget = InvoiceItemWidget(service, index)
+        service_id = next(iter(service))
+        widget = InvoiceItemWidget(service[service_id])
         widget.adjustSize()
         item.setSizeHint(widget.sizeHint())
         self.invoice_list.addItem(item)
         self.invoice_list.setItemWidget(item, widget)
-        widget.delete_button.clicked.connect(lambda: self.delete_service_from_invoice(index-1))
-        widget.edit_button.clicked.connect(lambda: self.edit_service_from_invoice(index-1))
+        widget.delete_button.clicked.connect(lambda: self.delete_service_from_invoice(service_id))
+        widget.edit_button.clicked.connect(lambda: self.edit_service_from_invoice(service_id))
 
-    def delete_service_from_invoice(self, index):
+    def delete_service_from_invoice(self, id):
+        index = self.job_details['services'].index(id)
         reply = QMessageBox.question(self, "Confirmation",
                                      f"Do you want to delete - {self.job_details['services'][index]['service']}?", 
                                      QMessageBox.Yes | QMessageBox.No,
@@ -389,14 +390,14 @@ class Jobs(QWidget):
             del item
             self.reinitialize_invoice_amount()
 
-    def edit_service_from_invoice(self, index):
-        self.service_dialog = ServiceDialog(self.file_path, self.job_details['services'][index])
-        self.service_dialog.service_data.connect(lambda data: self.update_service_invoice(data, index))
+    def edit_service_from_invoice(self, id):
+        self.service_dialog = ServiceDialog(self.file_path, self.job_details['services'][id])
+        self.service_dialog.service_data.connect(lambda data: self.update_service_invoice(data, id))
         self.service_dialog.exec()
 
-    def update_service_invoice(self, service_data, index):
+    def update_service_invoice(self, service_data, id):
         if service_data != None:
-            service = self.job_details['services'][index]
+            service = self.job_details['services'][id]
             service['rate'] = service_data['rate']
             service['discount'] = service_data['discount']
             service['quantity'] = service_data['quantity']
@@ -404,10 +405,9 @@ class Jobs(QWidget):
             service['server'] = service_data['server']
             service['helper'] = service_data['helper']
             self.invoice_list.clear()
-            for index, service in enumerate(self.job_details['services']):
-                self.add_service_to_invoice_list(service, index)
+            for service in self.job_details['services']:
+                self.add_service_to_invoice_list(service)
             
-
     def invoice_total_view(self):
         amount_layout = QVBoxLayout()
 
@@ -496,8 +496,9 @@ class Jobs(QWidget):
         gross_total = 0
         net_amount = 0
         for service in self.job_details["services"]:
-            gross_total += float(service['rate']) * int(service['quantity'])
-            net_amount += float(service['price'])
+            service_id = next(iter(service))
+            gross_total += float(service[service_id]['rate']) * int(service[service_id]['quantity'])
+            net_amount += float(service[service_id]['price'])
 
         self.job_details['gross_total'] = gross_total
         self.job_details['net_amount'] = net_amount

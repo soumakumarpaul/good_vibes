@@ -3,10 +3,9 @@ from PySide6.QtCore import Qt
 
 class InvoiceItemWidget(QWidget):
     
-    def __init__(self, service_details, index: int):
+    def __init__(self, service_details):
         super().__init__()
         self.service = service_details
-        self.index = index
         self.setMouseTracking(True)
         layout = QVBoxLayout(self)
         layout.addWidget(self.init_header(), 1)

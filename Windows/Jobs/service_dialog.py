@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QSizePolicy, QWidget
 from PySide6.QtCore import Signal, Qt, QRegularExpression
 from PySide6.QtGui import QShortcut, QKeySequence, QRegularExpressionValidator
 from tinydb import TinyDB
+from uuid import uuid4 as serviceid
 
 class ServiceDialog(QDialog):
     service_data = Signal(object)
@@ -305,13 +306,15 @@ class ServiceDialog(QDialog):
             alert.exec()
             return
         response = {
-            "service": self.service_details.get("service", ""),
-            "quantity": self.txt_qty.text(),
-            "rate": self.txt_price.text(),
-            "discount": self.txt_discount.text(),
-            "price": self.txt_amt.text(),
-            "server": self.server_combo.currentText(),
-            "helper": self.helper_combo.currentText()
+            str(serviceid()): {
+                "service": self.service_details.get("service", ""),
+                "quantity": self.txt_qty.text(),
+                "rate": self.txt_price.text(),
+                "discount": self.txt_discount.text(),
+                "price": self.txt_amt.text(),
+                "server": self.server_combo.currentText(),
+                "helper": self.helper_combo.currentText()
+            }
         }
         self.service_data.emit(response)
         self.close()
