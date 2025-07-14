@@ -3,8 +3,9 @@ from PySide6.QtCore import Qt
 
 class InvoiceItemWidget(QWidget):
     
-    def __init__(self, service_details):
+    def __init__(self, service_details, index):
         super().__init__()
+        self.index = index
         self.service = service_details
         self.setMouseTracking(True)
         layout = QVBoxLayout(self)
@@ -21,7 +22,7 @@ class InvoiceItemWidget(QWidget):
         layout = QHBoxLayout(header_container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        service_label = QLabel(f"{self.service.get("service", "")}")
+        service_label = QLabel(f"{self.index}. {self.service.get("service", "")}")
         service_label.setStyleSheet("""
             QLabel{
                 font-weight: bold;

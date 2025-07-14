@@ -333,9 +333,10 @@ class Jobs(QWidget):
     # Adding service to invoice
     def add_service_invoice(self, service_data):
         if service_data != None:
+            index = len(self.job_details['services'])
             self.job_details["services"].append(service_data)
             self.reinitialize_invoice_amount()
-            self.add_service_to_invoice_list(service_data)
+            self.add_service_to_invoice_list(service_data, index)
 
     def init_invoice_layout(self):
         invoice_layout = QVBoxLayout()
@@ -363,50 +364,49 @@ class Jobs(QWidget):
             background-color: #f2f2f2;
         }
         """)
-        for service in self.job_details['services']:
+        for index, service in enumerate(self.job_details['services']):
             self.add_service_to_invoice_list(service)
         return self.invoice_list
     
-    def add_service_to_invoice_list(self, service):
+    def add_service_to_invoice_list(self, service, index):
         item = QListWidgetItem()
-        service_id = next(iter(service))
-        widget = InvoiceItemWidget(service[service_id])
+        widget = InvoiceItemWidget(service, index+1)
         widget.adjustSize()
         item.setSizeHint(widget.sizeHint())
         self.invoice_list.addItem(item)
         self.invoice_list.setItemWidget(item, widget)
-        widget.delete_button.clicked.connect(lambda: self.delete_service_from_invoice(service_id))
-        widget.edit_button.clicked.connect(lambda: self.edit_service_from_invoice(service_id))
+        widget.delete_button.clicked.connect(lambda: self.delete_service_from_invoice(index))
+        widget.edit_button.clicked.connect(lambda: self.edit_service_from_invoice(index))
 
-    def delete_service_from_invoice(self, id):
-        index = self.job_details['services'].index(id)
+    def delete_service_from_invoice(self, index):
         reply = QMessageBox.question(self, "Confirmation",
                                      f"Do you want to delete - {self.job_details['services'][index]['service']}?", 
                                      QMessageBox.Yes | QMessageBox.No,
                                      QMessageBox.No)
         if(reply == QMessageBox.Yes):
             del(self.job_details['services'][index])
-            item = self.invoice_list.takeItem(index)
-            del item
+            self.invoice_list.clear()
+            for index, service in enumerate(self.job_details['services']):
+                self.add_service_to_invoice_list(service, index)
             self.reinitialize_invoice_amount()
 
-    def edit_service_from_invoice(self, id):
-        self.service_dialog = ServiceDialog(self.file_path, self.job_details['services'][id])
-        self.service_dialog.service_data.connect(lambda data: self.update_service_invoice(data, id))
+    def edit_service_from_invoice(self, index):
+        self.service_dialog = ServiceDialog(self.file_path, self.job_details['services'][index])
+        self.service_dialog.service_data.connect(lambda data: self.update_service_invoice(data, index))
         self.service_dialog.exec()
 
-    def update_service_invoice(self, service_data, id):
+    def update_service_invoice(self, service_data, index):
         if service_data != None:
-            service = self.job_details['services'][id]
+            service = self.job_details['services'][index]
             service['rate'] = service_data['rate']
             service['discount'] = service_data['discount']
-            service['quantity'] = service_data['quantity']
             service['price'] = service_data['price']
             service['server'] = service_data['server']
             service['helper'] = service_data['helper']
             self.invoice_list.clear()
-            for service in self.job_details['services']:
-                self.add_service_to_invoice_list(service)
+            for index, service in enumerate(self.job_details['services']):
+                self.add_service_to_invoice_list(service, index)
+            self.reinitialize_invoice_amount()
             
     def invoice_total_view(self):
         amount_layout = QVBoxLayout()
@@ -496,15 +496,15 @@ class Jobs(QWidget):
         gross_total = 0
         net_amount = 0
         for service in self.job_details["services"]:
-            service_id = next(iter(service))
-            gross_total += float(service[service_id]['rate']) * int(service[service_id]['quantity'])
-            net_amount += float(service[service_id]['price'])
+            gross_total += float(service['rate'])
+            net_amount += float(service['price'])
 
         self.job_details['gross_total'] = gross_total
         self.job_details['net_amount'] = net_amount
         self.job_details['discount'] = gross_total - net_amount
+        discount_percent = 100 - ((net_amount/gross_total)*100)
         self.gross_amt_label.setText("₹{:.2f}".format(self.job_details["gross_total"]))
-        self.discount_amt_label.setText("₹{:.2f}".format(self.job_details["discount"]))
+        self.discount_amt_label.setText("[{:.2f}%] ₹{:.2f}".format(discount_percent, self.job_details["discount"]))
         self.net_amt_label.setText("₹{:.2f}".format(self.job_details["net_amount"]))
 
 
