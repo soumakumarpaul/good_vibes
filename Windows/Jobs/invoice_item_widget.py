@@ -1,10 +1,13 @@
-from PySide6.QtWidgets import QVBoxLayout, QWidget, QLabel, QHBoxLayout
+from PySide6.QtWidgets import QVBoxLayout, QWidget, QLabel, QHBoxLayout, QPushButton
+from PySide6.QtCore import Qt
 
 class InvoiceItemWidget(QWidget):
     
-    def __init__(self, service_details):
+    def __init__(self, service_details, index):
         super().__init__()
+        self.index = index
         self.service = service_details
+        self.setMouseTracking(True)
         layout = QVBoxLayout(self)
         layout.addWidget(self.init_header(), 1)
         layout.addLayout(self.init_particulars())
@@ -14,7 +17,12 @@ class InvoiceItemWidget(QWidget):
 
     # Header Label - Service Name
     def init_header(self):
-        service_label = QLabel(self.service.get("service", ""))
+        header_container = QWidget()
+        header_container.setContentsMargins(0, 0, 0, 0)
+        layout = QHBoxLayout(header_container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        service_label = QLabel(f"{self.index}. {self.service.get("service", "")}")
         service_label.setStyleSheet("""
             QLabel{
                 font-weight: bold;
@@ -22,7 +30,29 @@ class InvoiceItemWidget(QWidget):
                 color: #7851a9;
             }
         """)
-        return service_label
+
+        self.delete_button = QPushButton("Delete")
+        self.edit_button = QPushButton("Edit")
+
+        for btn in (self.edit_button, self.delete_button):
+            btn.setFlat(True)
+            btn.setVisible(False)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setStyleSheet("""
+                QPushButton {
+                    color: #2c2c2c;
+                    font-weight: bold;
+                    border: 1px solid #2c2c2c;
+                    margin-left: 10px;
+                    font-size: 12px;
+                    padding: 4px;
+                }
+            """)
+
+        layout.addWidget(service_label, 1)
+        layout.addWidget(self.edit_button)
+        layout.addWidget(self.delete_button)
+        return header_container
     
     # Particulars
     def init_particulars(self):
@@ -35,13 +65,14 @@ class InvoiceItemWidget(QWidget):
             }
         """
 
-        rate_label = QLabel(f"₹{self.service['rate']} x {self.service['quantity']}")
+        rate_label = QLabel("₹{:.2f}".format(float(self.service['rate'])))
         rate_label.setStyleSheet(secondary_label)
 
-        discount_label = QLabel(f"Less: {self.service['discount']}%")
+        discount = "{:.2f}".format(float(self.service['discount']))
+        discount_label = QLabel(f"Less: {discount}%")
         discount_label.setStyleSheet(secondary_label)
 
-        total_label = QLabel(f"₹{self.service['price']}")
+        total_label = QLabel("₹{:.2f}".format(float(self.service['price'])))
         total_label.setStyleSheet(secondary_label)
 
         particulars_layout.addWidget(rate_label)
@@ -78,4 +109,12 @@ class InvoiceItemWidget(QWidget):
         servers_layout.addStretch()
         servers_layout.addWidget(helper_label)
         return servers_layout
+    
+    def enterEvent(self, event):
+        self.edit_button.setVisible(True)
+        self.delete_button.setVisible(True)
+
+    def leaveEvent(self, event):
+        self.edit_button.setVisible(False)
+        self.delete_button.setVisible(False)
 

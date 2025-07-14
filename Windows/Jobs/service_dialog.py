@@ -93,7 +93,7 @@ class ServiceDialog(QDialog):
         """
 
         # Service Name
-        service_name = QLabel(self.service_details.get("name", ""))
+        service_name = QLabel(self.service_details.get("service", ""))
         service_name.setStyleSheet("""
             QLabel {
                 font-size: 20px;
@@ -114,7 +114,7 @@ class ServiceDialog(QDialog):
         price_validator = QRegularExpressionValidator(QRegularExpression(r"^[1-9]\d{1,4}(\.\d{1,2})?$"))
         price_lbl = QLabel("Price")
         price_lbl.setStyleSheet(input_field_label)
-        service_price = str(self.service_details.get("price", 0.00))
+        service_price = str(self.service_details.get("rate", 0.00))
         self.txt_price = QLineEdit(service_price)
         self.txt_price.setPlaceholderText("0.00")
         self.txt_price.setStyleSheet(input_field_style)
@@ -122,22 +122,8 @@ class ServiceDialog(QDialog):
         self.txt_price.textEdited.connect(self.compute_service)
         price_layout.addWidget(price_lbl)
         price_layout.addWidget(self.txt_price)
-
-        # Quanitity
-        qty_layout=QVBoxLayout()
-        qty_layout.setSpacing(5)
-        qty_validator = QRegularExpressionValidator(QRegularExpression(r"^[1-9]\d{1,2}$"))
-        qty_lbl = QLabel("Qty")
-        qty_lbl.setStyleSheet(input_field_label)
-        self.txt_qty = QLineEdit("1")
-        self.txt_qty.setStyleSheet(input_field_style)
-        self.txt_qty.setValidator(qty_validator)
-        self.txt_qty.textEdited.connect(self.compute_service)
-        qty_layout.addWidget(qty_lbl)
-        qty_layout.addWidget(self.txt_qty)
         
         quantity_layout.addLayout(price_layout)
-        quantity_layout.addLayout(qty_layout)
 
         #Amount Layout
         amount_layout = QHBoxLayout()
@@ -150,7 +136,7 @@ class ServiceDialog(QDialog):
         discount_validator = QRegularExpressionValidator(QRegularExpression(r"^[0-9]\d{0,1}(\.\d{1,2})?$"))
         discount_lbl = QLabel("Discount")
         discount_lbl.setStyleSheet(input_field_label)
-        self.txt_discount = QLineEdit("0")
+        self.txt_discount = QLineEdit(str(self.service_details.get('discount', "0.00")))
         self.txt_discount.setStyleSheet(input_field_style)
         self.txt_discount.setValidator(discount_validator)
         self.txt_discount.textEdited.connect(self.compute_net_amount)
@@ -163,7 +149,9 @@ class ServiceDialog(QDialog):
         amt_validator = QRegularExpressionValidator(QRegularExpression(r"^[1-9]\d{1,4}(\.\d{1,2})?$"))
         amt_lbl = QLabel("Amount")
         amt_lbl.setStyleSheet(input_field_label)
-        self.txt_amt = QLineEdit(str(self.service_details.get("price", "0.00")))
+        amount = self.service_details.get("price")
+        amount = amount if amount else self.service_details.get("rate", "0.00")
+        self.txt_amt = QLineEdit(str(amount))
         self.txt_amt.setStyleSheet(input_field_style)
         self.txt_amt.setValidator(amt_validator)
         self.txt_amt.textEdited.connect(self.compute_discount)
@@ -183,6 +171,7 @@ class ServiceDialog(QDialog):
         self.server_combo = QComboBox()
         self.server_combo.addItem("")
         self.server_combo.addItems(servers)
+        self.server_combo.setCurrentText(self.service_details.get("server", ""))
         self.server_combo.setStyleSheet(input_field_style)
         server_layout.addWidget(server_lbl)
         server_layout.addWidget(self.server_combo)
@@ -196,6 +185,7 @@ class ServiceDialog(QDialog):
         self.helper_combo = QComboBox()
         self.helper_combo.addItem("")
         self.helper_combo.addItems(servers)
+        self.helper_combo.setCurrentText(self.service_details.get("helper", ""))
         self.helper_combo.setStyleSheet(input_field_style)
         helper_layout.addWidget(helper_lbl)
         helper_layout.addWidget(self.helper_combo)
@@ -210,17 +200,13 @@ class ServiceDialog(QDialog):
 
     #Compute the amount based on quantity and price
     def compute_service(self, txt: str):
-        if self.txt_qty.text() != "":
-            rate = float(self.txt_price.text())
-            quantity = int(self.txt_qty.text())
-            self.txt_discount.setText("0")
-            amount = rate * quantity
-            self.txt_amt.setText("{:.2f}".format(amount))
+        rate = float(self.txt_price.text())
+        self.txt_discount.setText("0")
+        self.txt_amt.setText("{:.2f}".format(rate))
 
     def compute_discount(self, net_price: str):
         rate = float(self.txt_price.text())
-        quantity = int(self.txt_qty.text())
-        discount = 100 - ((float(net_price)/(rate * quantity)) * 100)
+        discount = 100 - ((float(net_price)/(rate)) * 100)
         if 0 <= discount <= 100:
             self.txt_discount.setText("{:.2f}".format(discount))
         else:
@@ -233,9 +219,10 @@ class ServiceDialog(QDialog):
 
     def compute_net_amount(self, discount: str):
         rate = float(self.txt_price.text())
-        quantity = int(self.txt_qty.text())
-        print(discount)
-        discount = float(discount)
+        try:
+            discount = float(discount)
+        except:
+            discount = 0
         if discount > 100:
             alert = QMessageBox()
             alert.setWindowTitle("Success")
@@ -244,7 +231,7 @@ class ServiceDialog(QDialog):
             alert.exec()
             self.txt_discount.setText("0")
         else:
-            net_amount = (rate * quantity) * (100 - discount)/100
+            net_amount = (rate) * (100 - discount)/100
             self.txt_amt.setText("{:.2f}".format(net_amount))
             
     # Intialize the buttons. The Actions on the dialog like Save and Cancel
@@ -299,13 +286,12 @@ class ServiceDialog(QDialog):
             alert.exec()
             return
         response = {
-            "service": self.service_details.get("name", ""),
-            "quantity": self.txt_qty.text(),
-            "rate": self.txt_price.text(),
-            "discount": self.txt_discount.text(),
-            "price": self.txt_amt.text(),
-            "server": self.server_combo.currentText(),
-            "helper": self.helper_combo.currentText()
+                "service": self.service_details.get("service", ""),
+                "rate": self.txt_price.text(),
+                "discount": self.txt_discount.text(),
+                "price": self.txt_amt.text(),
+                "server": self.server_combo.currentText(),
+                "helper": self.helper_combo.currentText()
         }
         self.service_data.emit(response)
         self.close()

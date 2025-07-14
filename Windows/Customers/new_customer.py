@@ -4,6 +4,7 @@ from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence
 from datetime import datetime
 import re
 from tinydb import TinyDB
+from Utilities.environments import Environment
 
 class NewCustomer(QDialog):
     shared_data = Signal(object)
@@ -14,6 +15,8 @@ class NewCustomer(QDialog):
         self.setFixedSize(400, 400)
         self.db = db
         self.phone = phone
+        self.env = Environment()
+        self.counter = 0
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.init_widgets()
         self.init_shortcut() 
@@ -194,32 +197,23 @@ class NewCustomer(QDialog):
         }
         # insert customer
         self.db.insert(customer)
+        self.env.set_customer_id_counter(self.counter)
         message = "New Customer Added Successfully. "
-        response = {"Name": self.customer_name.text(), "Phone": self.phone_number.text()}
+        response = customer
         self.shared_data.emit(response) 
         alert = QMessageBox()
         alert.setWindowTitle("Success")
         alert.setText(message)
         alert.setStandardButtons(QMessageBox.Ok)
         alert.exec()
-        self.exit()
+        self.close()
     
     def generate_id(self):
-        records = self.db.all()
         now = datetime.now()
         month = f"{now.month:02d}"
         year = now.year
-
-        if records:
-            last_id = records[-1].get("id", "")
-            match = re.match(r"CUST-(\d+)-\d{2}-\d{4}", last_id)
-            if match:
-                last_seq = int(match.group(1))
-            else:
-                last_seq = 0
-        else:
-            last_seq = 0
-        return f"CUST-{last_seq+1:03d}-{month}-{year}"
+        self.counter = self.env.get_customer_counter()+1
+        return f"CUST-{self.counter:04d}-{month}-{year}"
 
     def exit(self):
         self.shared_data.emit(None)

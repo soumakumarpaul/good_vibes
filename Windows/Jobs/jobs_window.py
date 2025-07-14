@@ -8,15 +8,30 @@ from functools import partial
 from Windows.Customers.new_customer import NewCustomer
 from .service_dialog import ServiceDialog
 from .invoice_item_widget import InvoiceItemWidget
+from datetime import datetime
+from Utilities.environments import Environment
 
 class Jobs(QWidget):
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, job_details = None):
         super().__init__()
         self.file_path = file_path
+        self.job_details = {}
+        self.is_job_saved = False
+        self.is_new_job = True
+        if job_details == None:
+            self.env = Environment()
+            self.counter = 0
+            self.job_details = {"_id": None, 
+                                "services": [], 
+                                "gross_total": 0, 
+                                "discount": 0, 
+                                "net_amount": 0} # This is the invoice details.
+        else:
+            self.is_new_job = False
+            self.job_details = job_details
         self.catalog = []
         self.customer_info = {}
         self.service_results = []
-        self.job_details = {"services": [], "gross_total": 0, "discount": 0, "net_amount": 0} # This is the invoice details.
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.init_shortcuts()
         self.init_widgets()
@@ -35,15 +50,36 @@ class Jobs(QWidget):
         invoice_shortcut.activated.connect(self.invoice)
 
     def exit(self):
+        if self.is_job_saved:
+            self.close()
+            return
         reply = QMessageBox.question(self, 
                                      "Confirmation", 
-                                     "Are you sure you do not want to save the job?",
+                                     "Cancel without Saving the Job?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.close()
 
     def save(self):
-        pass
+        if len(self.job_details['services']) == 0:
+            QMessageBox.information(self, "Save Job", "Please add service in Job", QMessageBox.Ok)
+        else:
+            jobs_db = TinyDB(self.file_path + "/jobs_db.json")
+            self.job_details['customer'] = self.customer_info
+            self.job_details['state'] = "active"
+            if self.job_details['_id'] == None:
+                self.job_details['_id'] = self.generate_job_id()
+            self.job_details['date'] = datetime.now().isoformat()
+            self.job_details['timestamp'] = datetime.now().timestamp()
+            if self.is_new_job:
+                jobs_db.insert(self.job_details)
+                self.is_new_job = False
+            else:
+                Job = Query()
+                jobs_db.update(self.job_details, Job._id == self.job_details["_id"])
+            QMessageBox.information(self, "Save Successful", "The Job is successfully saved.", QMessageBox.Ok)
+            self.is_job_saved = True
+            self.env.set_job_id_counter(self.counter)
 
     def invoice(self):
         pass
@@ -59,20 +95,22 @@ class Jobs(QWidget):
             Customer: Query = Query()
             results = db.search(Customer.mobile == phone_number)
             if results == []:
-                print("Heelo")
                 self.add_customer = NewCustomer(db, phone_number)
                 self.add_customer.shared_data.connect(self.get_new_customer)
                 self.add_customer.exec()
             else:
-                self.customer_info = results[0]
+                self.customer_info["_id"] = results[0]['_id']
+                self.customer_info["name"] = results[0]['name']
+                self.customer_info["phone"] = results[0]['mobile']
             db.close()
-            self.customer_name_field.setText(self.customer_info["name"])
+            self.customer_name_field.setText(self.customer_info.get("name", ""))
             membership_details = self.customer_info.get("membership", {})
             self.membership_points.setText(f"Points: {membership_details.get("points", 0)}")
 
     def get_new_customer(self, data):
-        self.customer_name_field.setText(data.get("Name"))
-        self.membership_points.setText("Points: 0")
+        self.customer_info["_id"] = data['_id']
+        self.customer_info["name"] = data['name']
+        self.customer_info["phone"] = data['mobile']
     
     def init_widgets(self):
         main_layout = QVBoxLayout()
@@ -315,8 +353,8 @@ class Jobs(QWidget):
         items = [item for item in self.service_results
                  if all(word in item.get("name", "").lower() for word in keyword)]
         for item in items:
-            service_item = QStandardItem(item["name"])
-            service_item.setToolTip(item["name"])
+            service_item = QStandardItem(item["service"])
+            service_item.setToolTip(item["service"])
             service_item.setData(item, Qt.UserRole)
             model.appendRow(service_item)
         self.service_list_model = model
@@ -333,11 +371,11 @@ class Jobs(QWidget):
 
     # Adding service to invoice
     def add_service_invoice(self, service_data):
-        self.job_details["services"].append(service_data)
-        discount = self.job_details["discount"]
-        net_amount = self.job_details["net_amount"]
-        self.reinitialize_invoice_amount()
-        self.add_service_to_invoice_list(service_data)
+        if service_data != None:
+            index = len(self.job_details['services'])
+            self.job_details["services"].append(service_data)
+            self.reinitialize_invoice_amount()
+            self.add_service_to_invoice_list(service_data, index)
 
     def init_invoice_layout(self):
         invoice_layout = QVBoxLayout()
@@ -365,17 +403,50 @@ class Jobs(QWidget):
             background-color: #f2f2f2;
         }
         """)
-        for service in self.job_details['services']:
+        for index, service in enumerate(self.job_details['services']):
             self.add_service_to_invoice_list(service)
         return self.invoice_list
     
-    def add_service_to_invoice_list(self, service):
+    def add_service_to_invoice_list(self, service, index):
         item = QListWidgetItem()
-        widget = InvoiceItemWidget(service)
+        widget = InvoiceItemWidget(service, index+1)
+        widget.adjustSize()
         item.setSizeHint(widget.sizeHint())
         self.invoice_list.addItem(item)
         self.invoice_list.setItemWidget(item, widget)
+        widget.delete_button.clicked.connect(lambda: self.delete_service_from_invoice(index))
+        widget.edit_button.clicked.connect(lambda: self.edit_service_from_invoice(index))
 
+    def delete_service_from_invoice(self, index):
+        reply = QMessageBox.question(self, "Confirmation",
+                                     f"Do you want to delete - {self.job_details['services'][index]['service']}?", 
+                                     QMessageBox.Yes | QMessageBox.No,
+                                     QMessageBox.No)
+        if(reply == QMessageBox.Yes):
+            del(self.job_details['services'][index])
+            self.invoice_list.clear()
+            for index, service in enumerate(self.job_details['services']):
+                self.add_service_to_invoice_list(service, index)
+            self.reinitialize_invoice_amount()
+
+    def edit_service_from_invoice(self, index):
+        self.service_dialog = ServiceDialog(self.file_path, self.job_details['services'][index])
+        self.service_dialog.service_data.connect(lambda data: self.update_service_invoice(data, index))
+        self.service_dialog.exec()
+
+    def update_service_invoice(self, service_data, index):
+        if service_data != None:
+            service = self.job_details['services'][index]
+            service['rate'] = service_data['rate']
+            service['discount'] = service_data['discount']
+            service['price'] = service_data['price']
+            service['server'] = service_data['server']
+            service['helper'] = service_data['helper']
+            self.invoice_list.clear()
+            for index, service in enumerate(self.job_details['services']):
+                self.add_service_to_invoice_list(service, index)
+            self.reinitialize_invoice_amount()
+            
     def invoice_total_view(self):
         amount_layout = QVBoxLayout()
 
@@ -444,18 +515,25 @@ class Jobs(QWidget):
             }
         """
 
-        cancel_btn = QPushButton("Cancel")
+        cancel_btn = QPushButton("Exit [Ctrl+X]")
         cancel_btn.setStyleSheet(buttons_style)
-        save_btn = QPushButton("Save")
+        cancel_btn.setCursor(Qt.PointingHandCursor)
+
+        save_btn = QPushButton("Save [Ctrl+S]")
         save_btn.setStyleSheet(buttons_style)
-        invoice_btn = QPushButton("Invoice")
+        save_btn.setCursor(Qt.PointingHandCursor)
+
+        invoice_btn = QPushButton("Invoice [Ctrl+I]")
         invoice_btn.setStyleSheet(buttons_style)
+        invoice_btn.setCursor(Qt.PointingHandCursor)
 
         actions_layout.addWidget(cancel_btn)
         actions_layout.addWidget(save_btn)
         actions_layout.addWidget(invoice_btn)
 
         cancel_btn.clicked.connect(self.exit)
+        save_btn.clicked.connect(self.save)
+        invoice_btn.clicked.connect(self.invoice)
 
         return actions_layout
     
@@ -464,15 +542,21 @@ class Jobs(QWidget):
         gross_total = 0
         net_amount = 0
         for service in self.job_details["services"]:
-            gross_total += float(service['rate']) * int(service['quantity'])
+            gross_total += float(service['rate'])
             net_amount += float(service['price'])
 
         self.job_details['gross_total'] = gross_total
         self.job_details['net_amount'] = net_amount
         self.job_details['discount'] = gross_total - net_amount
+        discount_percent = 100 - ((net_amount/gross_total)*100)
         self.gross_amt_label.setText("₹{:.2f}".format(self.job_details["gross_total"]))
-        self.discount_amt_label.setText("₹{:.2f}".format(self.job_details["discount"]))
+        self.discount_amt_label.setText("[{:.2f}%] ₹{:.2f}".format(discount_percent, self.job_details["discount"]))
         self.net_amt_label.setText("₹{:.2f}".format(self.job_details["net_amount"]))
+        self.is_job_saved = False
 
-
-
+    def generate_job_id(self):
+        self.counter = self.env.get_job_id_counter()+1
+        now = datetime.now()
+        month = f"{now.month:02d}"
+        year = now.year
+        return f"JOB-{self.counter:04d}-{month}-{year}"
