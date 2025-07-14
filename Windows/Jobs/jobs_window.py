@@ -43,7 +43,15 @@ class Jobs(QWidget):
             self.close()
 
     def save(self):
-        pass
+        if len(self.job_details['services']) == 0:
+            QMessageBox.information(self, "Save Job", "No Services in job to save.", QMessageBox.Ok)
+        else:
+            jobs_db = TinyDB(self.file_path + "/jobs_db.json")
+            self.job_details['customer'] = self.customer_info
+            self.job_details['state'] = "active"
+            jobs_db.insert(self.job_details)
+            QMessageBox.information(self, "Save Successful", "The Job is successfully saved.", QMessageBox.Ok)
+            self.close()
 
     def invoice(self):
         pass
@@ -476,18 +484,25 @@ class Jobs(QWidget):
             }
         """
 
-        cancel_btn = QPushButton("Cancel")
+        cancel_btn = QPushButton("Exit [Ctrl+X]")
         cancel_btn.setStyleSheet(buttons_style)
-        save_btn = QPushButton("Save")
+        cancel_btn.setCursor(Qt.PointingHandCursor)
+
+        save_btn = QPushButton("Save [Ctrl+S]")
         save_btn.setStyleSheet(buttons_style)
-        invoice_btn = QPushButton("Invoice")
+        save_btn.setCursor(Qt.PointingHandCursor)
+
+        invoice_btn = QPushButton("Invoice [Ctrl+I]")
         invoice_btn.setStyleSheet(buttons_style)
+        invoice_btn.setCursor(Qt.PointingHandCursor)
 
         actions_layout.addWidget(cancel_btn)
         actions_layout.addWidget(save_btn)
         actions_layout.addWidget(invoice_btn)
 
         cancel_btn.clicked.connect(self.exit)
+        save_btn.clicked.connect(self.save)
+        invoice_btn.clicked.connect(self.invoice)
 
         return actions_layout
     
