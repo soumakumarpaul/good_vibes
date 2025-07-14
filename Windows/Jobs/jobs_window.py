@@ -8,6 +8,7 @@ from functools import partial
 from Windows.Customers.new_customer import NewCustomer
 from .service_dialog import ServiceDialog
 from .invoice_item_widget import InvoiceItemWidget
+from uuid import uuid4 as jobId
 
 class Jobs(QWidget):
     def __init__(self, file_path: str):
@@ -16,7 +17,7 @@ class Jobs(QWidget):
         self.catalog = []
         self.customer_info = {}
         self.service_results = []
-        self.job_details = {"services": [], "gross_total": 0, "discount": 0, "net_amount": 0} # This is the invoice details.
+        self.job_details = {"_id": "", "services": [], "gross_total": 0, "discount": 0, "net_amount": 0} # This is the invoice details.
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.init_shortcuts()
         self.init_widgets()
@@ -49,6 +50,9 @@ class Jobs(QWidget):
             jobs_db = TinyDB(self.file_path + "/jobs_db.json")
             self.job_details['customer'] = self.customer_info
             self.job_details['state'] = "active"
+            if self.job_details['_id'] == "":
+                self.job_details['_id'] = str(jobId)
+            
             jobs_db.insert(self.job_details)
             QMessageBox.information(self, "Save Successful", "The Job is successfully saved.", QMessageBox.Ok)
             self.close()
