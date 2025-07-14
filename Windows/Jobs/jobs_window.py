@@ -8,16 +8,30 @@ from functools import partial
 from Windows.Customers.new_customer import NewCustomer
 from .service_dialog import ServiceDialog
 from .invoice_item_widget import InvoiceItemWidget
-from uuid import uuid4 as jobId
+from datetime import datetime
+from Utilities.environments import Environment
 
 class Jobs(QWidget):
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, job_details = None):
         super().__init__()
         self.file_path = file_path
+        self.job_details = {}
+        self.is_job_saved = False
+        self.is_new_job = True
+        if job_details == None:
+            self.env = Environment()
+            self.counter = 0
+            self.job_details = {"_id": None, 
+                                "services": [], 
+                                "gross_total": 0, 
+                                "discount": 0, 
+                                "net_amount": 0} # This is the invoice details.
+        else:
+            self.is_new_job = False
+            self.job_details = job_details
         self.catalog = []
         self.customer_info = {}
         self.service_results = []
-        self.job_details = {"_id": "", "services": [], "gross_total": 0, "discount": 0, "net_amount": 0} # This is the invoice details.
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.init_shortcuts()
         self.init_widgets()
@@ -36,6 +50,9 @@ class Jobs(QWidget):
         invoice_shortcut.activated.connect(self.invoice)
 
     def exit(self):
+        if self.is_job_saved:
+            self.close()
+            return
         reply = QMessageBox.question(self, 
                                      "Confirmation", 
                                      "Cancel without Saving the Job?",
@@ -45,17 +62,24 @@ class Jobs(QWidget):
 
     def save(self):
         if len(self.job_details['services']) == 0:
-            QMessageBox.information(self, "Save Job", "No Services in job to save.", QMessageBox.Ok)
+            QMessageBox.information(self, "Save Job", "Please add service in Job", QMessageBox.Ok)
         else:
             jobs_db = TinyDB(self.file_path + "/jobs_db.json")
             self.job_details['customer'] = self.customer_info
             self.job_details['state'] = "active"
-            if self.job_details['_id'] == "":
-                self.job_details['_id'] = str(jobId)
-            
-            jobs_db.insert(self.job_details)
+            if self.job_details['_id'] == None:
+                self.job_details['_id'] = self.generate_job_id()
+            self.job_details['date'] = datetime.now().isoformat()
+            self.job_details['timestamp'] = datetime.now().timestamp()
+            if self.is_new_job:
+                jobs_db.insert(self.job_details)
+                self.is_new_job = False
+            else:
+                Job = Query()
+                jobs_db.update(self.job_details, Job._id == self.job_details["_id"])
             QMessageBox.information(self, "Save Successful", "The Job is successfully saved.", QMessageBox.Ok)
-            self.close()
+            self.is_job_saved = True
+            self.env.set_job_id_counter(self.counter)
 
     def invoice(self):
         pass
@@ -75,15 +99,18 @@ class Jobs(QWidget):
                 self.add_customer.shared_data.connect(self.get_new_customer)
                 self.add_customer.exec()
             else:
-                self.customer_info = results[0]
+                self.customer_info["_id"] = results[0]['_id']
+                self.customer_info["name"] = results[0]['name']
+                self.customer_info["phone"] = results[0]['mobile']
             db.close()
             self.customer_name_field.setText(self.customer_info.get("name", ""))
             membership_details = self.customer_info.get("membership", {})
             self.membership_points.setText(f"Points: {membership_details.get("points", 0)}")
 
     def get_new_customer(self, data):
-        self.customer_name_field.setText(data.get("name"))
-        self.membership_points.setText("Points: 0")
+        self.customer_info["_id"] = data['_id']
+        self.customer_info["name"] = data['name']
+        self.customer_info["phone"] = data['mobile']
     
     def init_widgets(self):
         main_layout = QVBoxLayout()
@@ -525,6 +552,11 @@ class Jobs(QWidget):
         self.gross_amt_label.setText("₹{:.2f}".format(self.job_details["gross_total"]))
         self.discount_amt_label.setText("[{:.2f}%] ₹{:.2f}".format(discount_percent, self.job_details["discount"]))
         self.net_amt_label.setText("₹{:.2f}".format(self.job_details["net_amount"]))
+        self.is_job_saved = False
 
-
-
+    def generate_job_id(self):
+        self.counter = self.env.get_job_id_counter()+1
+        now = datetime.now()
+        month = f"{now.month:02d}"
+        year = now.year
+        return f"JOB-{self.counter:04d}-{month}-{year}"

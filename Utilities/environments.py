@@ -15,4 +15,18 @@ class Environment:
     def get_db(self) ->  str:
         load_dotenv()
         return os.environ.get("DB_PATH", "Select Folder to configure DB")
+    
+    def get_job_id_counter(self) -> int:
+        load_dotenv()
+        return int(os.environ.get("JOB_ID", 0))
+    
+    def set_job_id_counter(self, counter):
+        set_key(self.env_file, "JOB_ID", str(counter))
+
+    def get_customer_counter(self) -> int:
+        load_dotenv()
+        return int(os.environ.get("CUSTOMER_ID", 0))
+    
+    def set_customer_id_counter(self, counter):
+        set_key(self.env_file, "CUSTOEMR_ID", str(counter))
         
