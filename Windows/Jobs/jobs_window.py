@@ -286,6 +286,7 @@ class Jobs(QWidget):
         """
         for index, category in enumerate(catalog):
             sub_category = category.get("sub-category", "").replace(" ", "\n")
+            type = category.get("type", "service")
             button = QPushButton(sub_category)
             button.setStyleSheet(button_styles)
             button.setFixedWidth(150)
@@ -293,14 +294,16 @@ class Jobs(QWidget):
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
             button.clicked.connect(partial(self.get_services, 
                                            category.get("services", []),
-                                           category.get("sub-category", "")))
+                                           category.get("sub-category", ""),
+                                           type))
             row = index // 2
             col = index % 2
             self.sub_cat_layout.addWidget(button, row, col)
 
-    def get_services(self, services = [], sub_category = ""):
+    def get_services(self, services = [], sub_category = "", item_type = "service"):
         for service in services:
             service['category'] = sub_category
+            service['type'] = item_type
         self.service_results = services
         self.search_services()
 
@@ -558,7 +561,7 @@ class Jobs(QWidget):
         gross_total = 0
         net_amount = 0
         for service in self.job_details["services"]:
-            gross_total += float(service['rate'])
+            gross_total += float(service['rate']) * float(service['quantity'])
             net_amount += float(service['price'])
 
         self.job_details['gross_total'] = gross_total
