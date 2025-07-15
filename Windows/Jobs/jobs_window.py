@@ -279,12 +279,16 @@ class Jobs(QWidget):
             button.setFixedWidth(150)
             button.setCursor(Qt.PointingHandCursor)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-            button.clicked.connect(partial(self.get_services, category.get("services", [])))
+            button.clicked.connect(partial(self.get_services, 
+                                           category.get("services", []),
+                                           category.get("sub-category", "")))
             row = index // 2
             col = index % 2
             self.sub_cat_layout.addWidget(button, row, col)
 
-    def get_services(self, services = []):
+    def get_services(self, services = [], sub_category = ""):
+        for service in services:
+            service['category'] = sub_category
         self.service_results = services
         self.search_services()
 
@@ -354,7 +358,7 @@ class Jobs(QWidget):
                  if all(word in item.get("name", "").lower() for word in keyword)]
         for item in items:
             service_item = QStandardItem(item["service"])
-            service_item.setToolTip(item["service"])
+            service_item.setToolTip(f"{item['category']} - {item["service"]}")
             service_item.setData(item, Qt.UserRole)
             model.appendRow(service_item)
         self.service_list_model = model
