@@ -22,7 +22,8 @@ class InvoiceItemWidget(QWidget):
         layout = QHBoxLayout(header_container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        service_label = QLabel(f"{self.index}. {self.service.get("service", "")}")
+        service_lbl_txt = f"{self.index:02d}. {self.service.get("service", "")}\n        {self.service.get("category", "")}"
+        service_label = QLabel(service_lbl_txt)
         service_label.setStyleSheet("""
             QLabel{
                 font-weight: bold;

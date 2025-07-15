@@ -291,7 +291,8 @@ class ServiceDialog(QDialog):
                 "discount": self.txt_discount.text(),
                 "price": self.txt_amt.text(),
                 "server": self.server_combo.currentText(),
-                "helper": self.helper_combo.currentText()
+                "helper": self.helper_combo.currentText(),
+                "category": self.service_details.get('category', '')
         }
         self.service_data.emit(response)
         self.close()
