@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QSizePolicy, QVBoxLayout, QHBoxLayout, QPushButton
 from Utilities.environments import Environment
 from PySide6.QtCore import Qt, QRegularExpression, Signal
-from PySide6.QtGui import QRegularExpressionValidator
+from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence
 
 class Invoice(QDialog):
 
@@ -10,10 +10,26 @@ class Invoice(QDialog):
     def __init__(self, folder_path, job_details):
         super().__init__()
         self.setModal(True)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setFixedSize(400, 400)
         self.env = Environment()
         self.folder_path = folder_path
         self.job_details = job_details
+        self.init_shortcuts()
+        self.init_widgets()
+
+    def init_shortcuts(self):
+        exit_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
+        exit_shortcut.setContext(Qt.WindowShortcut)
+        exit_shortcut.activated.connect(self.exit)
+
+        save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        save_shortcut.setContext(Qt.WindowShortcut)
+        save_shortcut.activated.connect(self.save_invoice)
+
+        invoice_shortcut = QShortcut(QKeySequence("Ctrl+P"), self)
+        invoice_shortcut.setContext(Qt.WindowShortcut)
+        invoice_shortcut.activated.connect(self.print_invoice)
 
     def init_widgets(self):
         main_layout = QVBoxLayout()
@@ -28,6 +44,7 @@ class Invoice(QDialog):
         main_layout.addWidget(self.init_payment_form())
 
         #actions widgets
+        main_layout.addStretch()
         main_layout.addWidget(self.init_actions())
         self.setLayout(main_layout)
 
@@ -51,13 +68,13 @@ class Invoice(QDialog):
     def init_payment(self):
         payment_container = QWidget()
         payment_layout = QHBoxLayout(payment_container)
-        payment_container.setStyleSheet('border: 2px solid #c0c0c0;')
-        payment_layout.setContentsMargins()
+        payment_layout.setContentsMargins(0, 0, 0, 0)
         payment_layout.setSpacing(0)
 
         payment_style = """
-            QLabel: {
-                font-size: 12px;
+            QLabel {
+                font-size: 16px;
+                font-weight: bold;
                 color: #7851a9;
                 padding: 5px;
             }
@@ -66,15 +83,17 @@ class Invoice(QDialog):
         payment_lbl = QLabel("To Pay:")
         payment_lbl.setStyleSheet(payment_style)
         payment_layout.addWidget(payment_lbl)
-        self.amount_lbl = QLabel("0.00")
+        amt = f"{self.job_details.get('net_amount', "0.00"):.2f}"
+        self.amount_lbl = QLabel(amt)
         self.amount_lbl.setStyleSheet(payment_style)
+        self.amount_lbl.setAlignment(Qt.AlignRight)
         payment_layout.addWidget(self.amount_lbl)
 
         return payment_container
 
     def init_payment_form(self):
         form_container = QWidget()
-        form_container.setStyleSheet('border: 2px solid #c0c0c0')
+        form_container.setStyleSheet('border: 2px solid #c0c0c0;')
         form_layout = QVBoxLayout(form_container)
 
         #Line Edit
@@ -105,13 +124,14 @@ class Invoice(QDialog):
         members_layout = QVBoxLayout()
         members_layout.setContentsMargins(0,0,0,0)
         members_layout.setSpacing(0)
-        members_label = QLabel("Layalty Credit")
+        members_label = QLabel("Loyalty Credit")
         members_label.setStyleSheet(input_field_label)
-        self.txt_members = QLineEdit()
+        self.txt_members = QLineEdit("0.00")
         self.txt_members.setPlaceholderText("0.00")
         self.txt_members.setStyleSheet(input_field_style)
         self.txt_members.setValidator(price_validator)
-        self.txt_members.textEdited.connect(self.compute_payment)
+
+        self.txt_members.textChanged.connect(self.compute_payment)
         self.txt_members.setReadOnly(True)
         members_layout.addWidget(members_label)
         members_layout.addWidget(self.txt_members)
@@ -122,7 +142,7 @@ class Invoice(QDialog):
         cash_layout.setSpacing(0)
         cash_label = QLabel("Cash")
         cash_label.setStyleSheet(input_field_label)
-        self.txt_cash = QLineEdit()
+        self.txt_cash = QLineEdit("0.00")
         self.txt_cash.setPlaceholderText("0.00")
         self.txt_cash.setStyleSheet(input_field_style)
         self.txt_cash.setValidator(price_validator)
@@ -136,7 +156,7 @@ class Invoice(QDialog):
         upi_layout.setSpacing(0)
         upi_label = QLabel("UPI")
         upi_label.setStyleSheet(input_field_label)
-        self.txt_upi = QLineEdit()
+        self.txt_upi = QLineEdit("0.00")
         self.txt_upi.setPlaceholderText("0.00")
         self.txt_upi.setStyleSheet(input_field_style)
         self.txt_upi.setValidator(price_validator)
@@ -150,7 +170,7 @@ class Invoice(QDialog):
         card_layout.setSpacing(0)
         card_label = QLabel("Card")
         card_label.setStyleSheet(input_field_label)
-        self.txt_card = QLineEdit()
+        self.txt_card = QLineEdit("0.00")
         self.txt_card.setPlaceholderText("0.00")
         self.txt_card.setStyleSheet(input_field_style)
         self.txt_card.setValidator(price_validator)
@@ -163,7 +183,7 @@ class Invoice(QDialog):
         form_layout.addLayout(upi_layout)
         form_layout.addLayout(card_layout)
 
-        return form_layout
+        return form_container
 
     def init_actions(self):
         actions_container = QWidget()
@@ -172,11 +192,10 @@ class Invoice(QDialog):
         #Buttons
         buttons_style = """
             QPushButton {
-                font-size: 16px;
+                font-size: 14px;
                 font-weight: bold;
                 color: "#7851a9";
-                padding: 10px;
-                margin: 15px;
+                padding: 5px;
                 background-color: #e5c8dc;
             }
             QPushButton:hover {
@@ -186,11 +205,11 @@ class Invoice(QDialog):
         """
 
         # buttons
-        self.save_button = QPushButton("Complete [Ctrl+S]")
+        self.save_button = QPushButton("Complete")
         self.save_button.setStyleSheet(buttons_style)
-        self.cancel_button = QPushButton("Cancel [ESC]")
+        self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setStyleSheet(buttons_style)
-        self.print_button = QPushButton("Print [Ctrl+P]")
+        self.print_button = QPushButton("Print")
         self.print_button.setStyleSheet(buttons_style)
 
         self.cancel_button.clicked.connect(self.exit)
@@ -206,8 +225,9 @@ class Invoice(QDialog):
         buttons_layout.addWidget(self.cancel_button)
         return actions_container
 
-    def compute_payment(self):
-        pass
+    def compute_payment(self, amount):
+        net_amount = float(self.job_details['net_amount']) - (float(self.txt_card.text()) + float(self.txt_cash.text()) + float(self.txt_upi.text()))
+        self.amount_lbl.setText(f"{net_amount:.2f}")
 
     def save_invoice(self):
         pass
