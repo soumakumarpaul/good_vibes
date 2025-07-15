@@ -10,6 +10,7 @@ from .service_dialog import ServiceDialog
 from .invoice_item_widget import InvoiceItemWidget
 from datetime import datetime
 from Utilities.environments import Environment
+from .invoice_dialog import Invoice
 
 class Jobs(QWidget):
     def __init__(self, file_path: str, job_details = None):
@@ -60,13 +61,13 @@ class Jobs(QWidget):
         if reply == QMessageBox.Yes:
             self.close()
 
-    def save(self):
+    def save(self, status: str = "active"):
         if len(self.job_details['services']) == 0:
             QMessageBox.information(self, "Save Job", "Please add service in Job", QMessageBox.Ok)
         else:
             jobs_db = TinyDB(self.file_path + "/jobs_db.json")
             self.job_details['customer'] = self.customer_info
-            self.job_details['state'] = "active"
+            self.job_details['state'] = status
             if self.job_details['_id'] == None:
                 self.job_details['_id'] = self.generate_job_id()
             self.job_details['date'] = datetime.now().isoformat()
@@ -82,7 +83,18 @@ class Jobs(QWidget):
             self.env.set_job_id_counter(self.counter)
 
     def invoice(self):
-        pass
+        if len(self.job_details['services']) == 0:
+            QMessageBox.information(self, "Save Job", "Please add service in Job", QMessageBox.Ok)
+        else:
+            self.save()
+            invoice = Invoice(self.file_path, self.job_details)
+            invoice.invoice_response.connect(self.execute_invoice)
+            invoice.exec()
+
+    def execute_invoice(self, response):
+        if response != None and response.get("status", "complete"):
+            self.save(status="completed")
+            self.exit()
 
     def init_catalog(self):
         db = TinyDB(self.file_path + "/catalog_db.json")
