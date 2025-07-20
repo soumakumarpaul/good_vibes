@@ -6,6 +6,7 @@ from Windows.Customers.customer_window import Customers
 from Windows.Employees.employee_window import Employee
 from Windows.Catalog.catalog_window import CatalogWindow
 from Windows.Jobs.jobs_window import Jobs
+from Windows.Expenses.expense_dialog import Expense
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -41,6 +42,10 @@ class MainWindow(QWidget):
         employee_shortcut = QShortcut(QKeySequence(Qt.Key_F4), self)
         employee_shortcut.setContext(Qt.ApplicationShortcut)
         employee_shortcut.activated.connect(self.open_employee)
+
+        payments_shortcut = QShortcut(QKeySequence(Qt.Key_F5), self)
+        payments_shortcut.setContext(Qt.ApplicationShortcut)
+        payments_shortcut.activated.connect(self.record_payments)
 
         settings_shortcut = QShortcut(QKeySequence(Qt.Key_F6), self)
         settings_shortcut.setContext(Qt.ApplicationShortcut)
@@ -106,6 +111,7 @@ class MainWindow(QWidget):
         self.payments_button = QPushButton("Payments [F5]")
         self.payments_button.setStyleSheet(buttons_style)
         self.payments_button.setCursor(Qt.PointingHandCursor)
+        self.payments_button.clicked.connect(self.record_payments)
 
         self.settings_button = QPushButton("Settings [F6]")
         self.settings_button.setStyleSheet(buttons_style)
@@ -178,6 +184,11 @@ class MainWindow(QWidget):
             if widget is not None:
                 widget.close()
                 widget.deleteLater()
+
+    def record_payments(self):
+        expense = Expense(self.folder_path)
+        expense.exec()
+        
 
         
 
