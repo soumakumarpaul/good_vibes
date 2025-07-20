@@ -5,8 +5,9 @@ from Utilities.environments import Environment
 from Windows.Customers.customer_window import Customers
 from Windows.Employees.employee_window import Employee
 from Windows.Catalog.catalog_window import CatalogWindow
-from Windows.Jobs.jobs_window import Jobs
+from Windows.Dashboard.dashboard_window import Dashboard
 from Windows.Expenses.expense_dialog import Expense
+from Windows.Jobs.jobs_window import Jobs
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -21,11 +22,12 @@ class MainWindow(QWidget):
         self.employee_window = None
         self.catalog_window = None
         self.job_window = None
+        self.open_dashboard()
 
     def init_shortcuts(self):
         job_shortcut = QShortcut(QKeySequence(Qt.Key_F1), self)
         job_shortcut.setContext(Qt.ApplicationShortcut)
-        job_shortcut.activated.connect(self.open_jobs)
+        job_shortcut.activated.connect(self.open_dashboard)
 
         esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
         esc_shortcut.setContext(Qt.ApplicationShortcut)
@@ -91,7 +93,7 @@ class MainWindow(QWidget):
         self.job_button = QPushButton("Jobs [F1]")
         self.job_button.setStyleSheet(buttons_style)
         self.job_button.setCursor(Qt.PointingHandCursor)
-        self.job_button.clicked.connect(self.open_jobs)
+        self.job_button.clicked.connect(self.open_dashboard)
 
         self.customers_button = QPushButton("Customers [F2]")
         self.customers_button.setStyleSheet(buttons_style)
@@ -172,10 +174,17 @@ class MainWindow(QWidget):
     def exit(self):
         self.close()
 
-    def open_jobs(self):
+    def open_dashboard(self):
         self.clear_layout()
-        self.job_window = Jobs(self.folder_path)
-        self.window_layout.addWidget(self.job_window)
+        self.dashboard_window = Dashboard(self.folder_path)
+        self.dashboard_window.dashboard_response.connect(self.open_job)
+        self.window_layout.addWidget(self.dashboard_window)
+
+    def open_job(self, job_details):
+        self.clear_layout()
+        job = Jobs(self.folder_path, job_details)
+        job.jobs_response.connect(self.open_dashboard)
+        self.window_layout.addWidget(job)
 
     def clear_layout(self):
         if self.window_layout.count():
