@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGridLayout, QListView, QListWidget, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout, QMessageBox, QListWidgetItem
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QKeySequence, QShortcut
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from tinydb import TinyDB, Query
 from PySide6.QtWidgets import QAbstractItemView
 import re
@@ -8,12 +8,13 @@ from functools import partial
 from Windows.Customers.new_customer import NewCustomer
 from .service_dialog import ServiceDialog
 from .invoice_item_widget import InvoiceItemWidget
-from datetime import datetime
+from datetime import datetime, date
 from Utilities.environments import Environment
 from .invoice_dialog import Invoice
 from .loyalty_dialog import Loyalty
 
 class Jobs(QWidget):
+    jobs_response = Signal()
     def __init__(self, file_path: str, job_details = None):
         super().__init__()
         self.file_path = file_path
@@ -60,28 +61,29 @@ class Jobs(QWidget):
                                      "Cancel without Saving the Job?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
+            self.jobs_response.emit()
             self.close()
 
-    def save(self, status: str = "active"):
+    def save(self, status: str = False):
         if len(self.job_details['services']) == 0:
             QMessageBox.information(self, "Save Job", "Please add service in Job", QMessageBox.Ok)
         else:
             jobs_db = TinyDB(self.file_path + "/jobs_db.json")
             self.job_details['customer'] = self.customer_info
-            self.job_details['state'] = status
+            self.job_details['isComplete'] = status
             if self.job_details['_id'] == None:
                 self.job_details['_id'] = self.generate_job_id()
-            self.job_details['date'] = datetime.now().isoformat()
+            self.job_details['date'] = date.today().isoformat()
             self.job_details['timestamp'] = datetime.now().timestamp()
             if self.is_new_job:
                 jobs_db.insert(self.job_details)
                 self.is_new_job = False
+                self.env.set_job_id_counter(self.counter)
             else:
                 Job = Query()
                 jobs_db.update(self.job_details, Job._id == self.job_details["_id"])
             QMessageBox.information(self, "Save Successful", "The Job is successfully saved.", QMessageBox.Ok)
             self.is_job_saved = True
-            self.env.set_job_id_counter(self.counter)
 
     def invoice(self):
         if len(self.job_details['services']) == 0:
@@ -94,7 +96,7 @@ class Jobs(QWidget):
 
     def execute_invoice(self, response):
         if response != None and response.get("status", "complete"):
-            self.save(status="completed")
+            self.save(status=True)
             self.exit()
 
     def init_catalog(self):
@@ -249,6 +251,9 @@ class Jobs(QWidget):
 
         customer_layout.addLayout(customer_info_layout)
         customer_layout.addLayout(loyalty_layout)
+
+        if self.job_details['customer']:
+            customer_phone.setText(self.job_details['customer'].get('phone', ''))
         return customer_container
     
     def pop_membership_dialog(self):
@@ -470,7 +475,7 @@ class Jobs(QWidget):
         }
         """)
         for index, service in enumerate(self.job_details['services']):
-            self.add_service_to_invoice_list(service)
+            self.add_service_to_invoice_list(service, index)
         return self.invoice_list
     
     def add_service_to_invoice_list(self, service, index):
