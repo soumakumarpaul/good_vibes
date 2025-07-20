@@ -12,6 +12,7 @@ from datetime import datetime, date
 from Utilities.environments import Environment
 from .invoice_dialog import Invoice
 from .loyalty_dialog import Loyalty
+from .advance_dialog import AdvanceDialog
 
 class Jobs(QWidget):
     jobs_response = Signal()
@@ -252,7 +253,7 @@ class Jobs(QWidget):
         customer_layout.addLayout(customer_info_layout)
         customer_layout.addLayout(loyalty_layout)
 
-        if self.job_details['customer']:
+        if self.job_details.get('customer'):
             customer_phone.setText(self.job_details['customer'].get('phone', ''))
         return customer_container
     
@@ -262,7 +263,9 @@ class Jobs(QWidget):
         loyalty_dialog.exec()
 
     def pop_advance_dialog(self):
-        pass
+        advance = AdvanceDialog()
+        advance.advance_respnose.connect(self.add_service_invoice)
+        advance.exec()
     
     def invoice_layout(self):
         layout = QHBoxLayout()
@@ -508,7 +511,9 @@ class Jobs(QWidget):
         elif particular['type'] == 'loyalty':
             service_dialog = Loyalty(particular)
             service_dialog.loyalty_response.connect(lambda data: self.update_service_invoice(data, index))
-        
+        elif particular['type'] == 'advance':
+            service_dialog = AdvanceDialog(particular)
+            service_dialog.advance_respnose.connect(lambda data: self.update_service_invoice(data, index))
         service_dialog.exec()
 
     def update_service_invoice(self, service_data, index):
