@@ -122,8 +122,24 @@ class ServiceDialog(QDialog):
         self.txt_price.textEdited.connect(self.compute_service)
         price_layout.addWidget(price_lbl)
         price_layout.addWidget(self.txt_price)
+
+        qty_layout = QVBoxLayout()
+        qty_layout.setSpacing(5)
+        quantity_lbl = QLabel("Quantity")
+        quantity_lbl.setStyleSheet(input_field_label)
+        self.txt_qty = QLineEdit("1.00")
+        self.txt_qty.setPlaceholderText("0.00")
+        self.txt_qty.setStyleSheet(input_field_style)
+        if self.service_details.get('type', 'service') == 'service':
+            self.txt_qty.setReadOnly(True)
+        else:
+            self.txt_qty.setReadOnly(False)
+        self.txt_qty.textEdited.connect(self.compute_service)
+        qty_layout.addWidget(quantity_lbl)
+        qty_layout.addWidget(self.txt_qty)
         
         quantity_layout.addLayout(price_layout)
+        quantity_layout.addLayout(qty_layout)
 
         #Amount Layout
         amount_layout = QHBoxLayout()
@@ -201,8 +217,11 @@ class ServiceDialog(QDialog):
     #Compute the amount based on quantity and price
     def compute_service(self, txt: str):
         rate = float(self.txt_price.text())
-        self.txt_discount.setText("0")
-        self.txt_amt.setText("{:.2f}".format(rate))
+        qty = float(self.txt_qty.text())
+        amount = (rate*qty)
+        discount = float(self.txt_discount.text())
+        amount = amount * (100 - discount)/100
+        self.txt_amt.setText("{:.2f}".format(amount))
 
     def compute_discount(self, net_price: str):
         rate = float(self.txt_price.text())
@@ -219,19 +238,20 @@ class ServiceDialog(QDialog):
 
     def compute_net_amount(self, discount: str):
         rate = float(self.txt_price.text())
+        quantity = float(self.txt_qty.text())
         try:
             discount = float(discount)
         except:
             discount = 0
         if discount > 100:
             alert = QMessageBox()
-            alert.setWindowTitle("Success")
+            alert.setWindowTitle("Failed")
             alert.setText("Discount should be in between 0 and 100")
             alert.setStandardButtons(QMessageBox.Ok)
             alert.exec()
             self.txt_discount.setText("0")
         else:
-            net_amount = (rate) * (100 - discount)/100
+            net_amount = (rate*quantity) * (100 - discount)/100
             self.txt_amt.setText("{:.2f}".format(net_amount))
             
     # Intialize the buttons. The Actions on the dialog like Save and Cancel
@@ -289,10 +309,12 @@ class ServiceDialog(QDialog):
                 "service": self.service_details.get("service", ""),
                 "rate": self.txt_price.text(),
                 "discount": self.txt_discount.text(),
+                "quantity": self.txt_qty.text(),
                 "price": self.txt_amt.text(),
                 "server": self.server_combo.currentText(),
                 "helper": self.helper_combo.currentText(),
-                "category": self.service_details.get('category', '')
+                "category": self.service_details.get('category', ''),
+                "type": self.service_details.get('type', "service")
         }
         self.service_data.emit(response)
         self.close()

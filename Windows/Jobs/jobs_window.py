@@ -11,6 +11,7 @@ from .invoice_item_widget import InvoiceItemWidget
 from datetime import datetime
 from Utilities.environments import Environment
 from .invoice_dialog import Invoice
+from .loyalty_dialog import Loyalty
 
 class Jobs(QWidget):
     def __init__(self, file_path: str, job_details = None):
@@ -102,6 +103,7 @@ class Jobs(QWidget):
         db.close()
 
     def get_customer_info(self, phone_number: str):
+        self.customer_advance_btn.setEnabled(False)
         if re.match(r"^[6-9]\d{9}$", phone_number):
             db = TinyDB(self.file_path + "/customers_db.json")
             Customer: Query = Query()
@@ -114,10 +116,16 @@ class Jobs(QWidget):
                 self.customer_info["_id"] = results[0]['_id']
                 self.customer_info["name"] = results[0]['name']
                 self.customer_info["phone"] = results[0]['mobile']
+                self.customer_info['membership'] = results[0].get('memebership', {})
+                self.customer_info['advance'] = results[0].get('advance', {})
+                self.customer_advance_btn.setEnabled(True)
             db.close()
             self.customer_name_field.setText(self.customer_info.get("name", ""))
             membership_details = self.customer_info.get("membership", {})
             self.membership_points.setText(f"Points: {membership_details.get("points", 0)}")
+            isNotMember = (membership_details.get('points', 0)) ==  0
+            if isNotMember:
+                self.customer_loyalty_btn.setEnabled(True)
 
     def get_new_customer(self, data):
         self.customer_info["_id"] = data['_id']
@@ -205,12 +213,51 @@ class Jobs(QWidget):
             }
         """)
         self.membership_points = customer_points
-        
+
+        #customer loyalty section
+        loyalty_layout = QHBoxLayout()
+        btn_style = """
+            QPushButton {
+                font-size: 14px;
+                font-weight: bold;
+                background-color: #7851a9;
+                color: #FFFFFF;
+                border: 1px solid #C0C0C0;
+                padding: 10px;
+            }
+            QPushButton:hover {
+                background-color: #C0C0C0;
+                color: #7851a9;
+            }
+        """
+        self.customer_loyalty_btn = QPushButton("Add Membership")
+        self.customer_loyalty_btn.setEnabled(False)
+        self.customer_loyalty_btn.setStyleSheet(btn_style)
+        self.customer_loyalty_btn.setCursor(Qt.PointingHandCursor)
+        self.customer_loyalty_btn.clicked.connect(self.pop_membership_dialog)
+
+        self.customer_advance_btn = QPushButton("Advance")
+        self.customer_advance_btn.setEnabled(False)
+        self.customer_advance_btn.setStyleSheet(btn_style)
+        self.customer_advance_btn.setCursor(Qt.PointingHandCursor)
+        self.customer_advance_btn.clicked.connect(self.pop_advance_dialog)
+        loyalty_layout.addWidget(self.customer_loyalty_btn)
+        loyalty_layout.addWidget(self.customer_advance_btn)
+
         customer_info_layout.addWidget(self.customer_name_field)
         customer_info_layout.addWidget(customer_points)
 
         customer_layout.addLayout(customer_info_layout)
+        customer_layout.addLayout(loyalty_layout)
         return customer_container
+    
+    def pop_membership_dialog(self):
+        loyalty_dialog = Loyalty()
+        loyalty_dialog.loyalty_response.connect(self.add_service_invoice)
+        loyalty_dialog.exec()
+
+    def pop_advance_dialog(self):
+        pass
     
     def invoice_layout(self):
         layout = QHBoxLayout()
@@ -286,6 +333,7 @@ class Jobs(QWidget):
         """
         for index, category in enumerate(catalog):
             sub_category = category.get("sub-category", "").replace(" ", "\n")
+            type = category.get("type", "service")
             button = QPushButton(sub_category)
             button.setStyleSheet(button_styles)
             button.setFixedWidth(150)
@@ -293,14 +341,16 @@ class Jobs(QWidget):
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
             button.clicked.connect(partial(self.get_services, 
                                            category.get("services", []),
-                                           category.get("sub-category", "")))
+                                           category.get("sub-category", ""),
+                                           type))
             row = index // 2
             col = index % 2
             self.sub_cat_layout.addWidget(button, row, col)
 
-    def get_services(self, services = [], sub_category = ""):
+    def get_services(self, services = [], sub_category = "", item_type = "service"):
         for service in services:
             service['category'] = sub_category
+            service['type'] = item_type
         self.service_results = services
         self.search_services()
 
@@ -367,7 +417,7 @@ class Jobs(QWidget):
         model: QStandardItemModel = QStandardItemModel()
         keyword = search_keyword.strip().lower().split()
         items = [item for item in self.service_results
-                 if all(word in item.get("name", "").lower() for word in keyword)]
+                 if all(word in item.get("service", "").lower() for word in keyword)]
         for item in items:
             service_item = QStandardItem(item["service"])
             service_item.setToolTip(f"{item['category']} - {item["service"]}")
@@ -446,9 +496,15 @@ class Jobs(QWidget):
             self.reinitialize_invoice_amount()
 
     def edit_service_from_invoice(self, index):
-        self.service_dialog = ServiceDialog(self.file_path, self.job_details['services'][index])
-        self.service_dialog.service_data.connect(lambda data: self.update_service_invoice(data, index))
-        self.service_dialog.exec()
+        particular = self.job_details['services'][index]
+        if particular['type'] in ('service', 'retail'):
+            service_dialog = ServiceDialog(self.file_path, particular)
+            service_dialog.service_data.connect(lambda data: self.update_service_invoice(data, index))
+        elif particular['type'] == 'loyalty':
+            service_dialog = Loyalty(particular)
+            service_dialog.loyalty_response.connect(lambda data: self.update_service_invoice(data, index))
+        
+        service_dialog.exec()
 
     def update_service_invoice(self, service_data, index):
         if service_data != None:
@@ -558,7 +614,7 @@ class Jobs(QWidget):
         gross_total = 0
         net_amount = 0
         for service in self.job_details["services"]:
-            gross_total += float(service['rate'])
+            gross_total += float(service['rate']) * float(service['quantity'])
             net_amount += float(service['price'])
 
         self.job_details['gross_total'] = gross_total

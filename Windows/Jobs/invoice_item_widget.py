@@ -66,7 +66,7 @@ class InvoiceItemWidget(QWidget):
             }
         """
 
-        rate_label = QLabel("₹{:.2f}".format(float(self.service['rate'])))
+        rate_label = QLabel("₹{:.2f} x {:.2f}".format(float(self.service['rate']), float(self.service['quantity'])))
         rate_label.setStyleSheet(secondary_label)
 
         discount = "{:.2f}".format(float(self.service['discount']))
