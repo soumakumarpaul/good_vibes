@@ -7,28 +7,32 @@ from datetime import datetime, timedelta
 
 class Loyalty(QDialog):
     loyalty_response = Signal(object)
-    def __init__(self):
+    def __init__(self, particulars = {}):
         super().__init__()
         self.setModal(True)
-        self.setFixedSize(500, 500)
+        self.setFixedSize(400, 400)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        self.particulars = particulars
+        self.init_widgets()
 
     def init_widgets(self):
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
         #initialize Header Section
         layout.addWidget(self.init_header())
 
         #initialize form
         layout.addWidget(self.init_loyalty_form())
-
+        layout.addStretch(1)
         #actions layout
         layout.addWidget(self.init_actions())
         self.setLayout(layout)
 
     def init_header(self):
         #Header label
-        header_label = QLabel("""<b>Layalty Program</b>""", self)
+        header_label = QLabel("""<b>Loyalty Program</b>""", self)
         header_label.setTextFormat(Qt.RichText)
         header_label.setStyleSheet("""
             QLabel {
@@ -53,25 +57,22 @@ class Loyalty(QDialog):
 
         #Line Edit
         input_field_style = """
-            QLineEdit, QComboBox {
+            QLineEdit, QLabel {
                 padding: 4px;
                 font-size: 20px;
                 background-color: #FFFFFF;
                 color: #2c2c2c;
                 border: 2px solid #7851a9;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #C0C0C0;
-                color: #FFFFFF;
-                selection-background-color: #7851a9; 
+                margin: 4px;
             }
         """
 
         input_field_label = """
             QLabel {
-                font-size: 10px;
+                font-size: 14px;
                 color: #C0C0C0;
                 border: 0px solid;
+                margin: 4px;
             }
         """
 
@@ -84,7 +85,8 @@ class Loyalty(QDialog):
         amt_layout = QVBoxLayout()
         amt_lbl = QLabel("Amount:")
         amt_lbl.setStyleSheet(input_field_label)
-        self.txt_amt = QLineEdit("1000.00")
+        amt = self.particulars.get("price", "1000.00")
+        self.txt_amt = QLineEdit(amt)
         self.txt_amt.setStyleSheet(input_field_style)
         self.txt_amt.setValidator(price_validator)
         self.txt_amt.textChanged.connect(self.compute_loyalty)
@@ -95,6 +97,7 @@ class Loyalty(QDialog):
         discount_layout = QVBoxLayout()
         discount_lbl = QLabel("Loyalty Percent")
         discount_lbl.setStyleSheet(input_field_label)
+        discount = self.particulars.get("discount", "10")
         self.txt_percent = QLineEdit("10")
         self.txt_percent.setStyleSheet(input_field_style)
         self.txt_percent.setValidator(discount_validator)
@@ -111,7 +114,7 @@ class Loyalty(QDialog):
         credits_lbl = QLabel("Loyalty Credits")
         credits_lbl.setStyleSheet(input_field_label)
 
-        self.txt_credits_lbl = QLabel("0")
+        self.txt_credits_lbl = QLabel("1100")
         self.txt_credits_lbl.setStyleSheet(input_field_style)
 
         credits_layout.addWidget(credits_lbl)
@@ -119,7 +122,6 @@ class Loyalty(QDialog):
 
         #Validity
         validity_layout = QHBoxLayout()
-        validity_layout.setSpacing(5)
         
         days_validator = QRegularExpressionValidator(QRegularExpression(r"^[1-9]\d{2,3}?$"))
         days_layout = QVBoxLayout()
@@ -195,7 +197,7 @@ class Loyalty(QDialog):
         self.txt_credits_lbl.setText(f"{credits:.2f}")
 
     def compute_expiry(self, txt: str):
-        days = int(txt)
+        days = int(txt) - 1
         expiry = datetime.today() + timedelta(days = days)
         self.txt_date.setText(expiry.strftime('%d %b %Y'))
 
@@ -205,14 +207,14 @@ class Loyalty(QDialog):
 
     def save_loyalty(self):
         response = {
-                "service": f"Credits: {self.txt_amt.text()} Valid: {self.txt_days.text()}",
+                "service": f"Credits: {self.txt_credits_lbl.text()} Valid: {self.txt_days.text()} Days",
                 "rate": self.txt_credits_lbl.text(),
                 "discount": self.txt_percent.text(),
                 "quantity": "1",
                 "price": self.txt_amt.text(),
                 "server": "",
                 "helper": "",
-                "category": self.service_details.get('category', 'Elite Member'),
+                "category": self.particulars.get('category', 'Elite Member'),
                 "type": "loyalty"
         }
         self.loyalty_response.emit(response)

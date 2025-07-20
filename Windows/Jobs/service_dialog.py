@@ -314,7 +314,7 @@ class ServiceDialog(QDialog):
                 "server": self.server_combo.currentText(),
                 "helper": self.helper_combo.currentText(),
                 "category": self.service_details.get('category', ''),
-                "type": self.service_details_get('type', "service")
+                "type": self.service_details.get('type', "service")
         }
         self.service_data.emit(response)
         self.close()
