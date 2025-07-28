@@ -96,7 +96,7 @@ class Jobs(QWidget):
             invoice.exec()
 
     def execute_invoice(self, response):
-        if response != None and response.get("status", "complete"):
+        if response == True:
             self.save(status=True)
             self.exit()
 
@@ -120,11 +120,12 @@ class Jobs(QWidget):
                 self.customer_info["name"] = results[0]['name']
                 self.customer_info["phone"] = results[0]['mobile']
                 self.customer_info['membership'] = results[0].get('memebership', {})
-                self.customer_info['advance'] = results[0].get('advance', {})
+                self.customer_info['advance'] = results[0].get('advance', 0)
                 self.customer_advance_btn.setEnabled(True)
                 self.customer_name_field.setText(self.customer_info.get("name", ""))
                 membership_details = self.customer_info.get("membership", {})
-                self.membership_points.setText(f"Points: {membership_details.get("points", 0)}")
+                validity = membership_details.get("expiry", "")
+                self.membership_points.setText(f"Points: {membership_details.get("points", 0)} [Validity: {validity}]")
                 self.customer_advance_btn.setEnabled(True)
                 isNotMember = (membership_details.get('points', 0)) ==  0
                 if isNotMember:

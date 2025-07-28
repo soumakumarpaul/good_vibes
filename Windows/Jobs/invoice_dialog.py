@@ -1,22 +1,29 @@
-from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QSizePolicy, QVBoxLayout, QHBoxLayout, QPushButton
+from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QSizePolicy, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox
 from Utilities.environments import Environment
 from PySide6.QtCore import Qt, QRegularExpression, Signal
 from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence
+from datetime import datetime, date
+from tinydb import TinyDB, Query
+import re
 
 class Invoice(QDialog):
 
-    invoice_response = Signal(object)
+    invoice_response = Signal(bool)
 
     def __init__(self, folder_path, job_details):
         super().__init__()
         self.setModal(True)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-        self.setFixedSize(400, 400)
+        self.setFixedSize(400, 500)
         self.env = Environment()
+        self.counter = 0
         self.folder_path = folder_path
         self.job_details = job_details
+        self.net_amount = self.job_details.get('net_amount', 0)
         self.init_shortcuts()
         self.init_widgets()
+        self.init_customer_credits()
+        self.init_customer_advance()
 
     def init_shortcuts(self):
         exit_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
@@ -73,7 +80,7 @@ class Invoice(QDialog):
 
         payment_style = """
             QLabel {
-                font-size: 16px;
+                font-size: 20px;
                 font-weight: bold;
                 color: #7851a9;
                 padding: 5px;
@@ -83,7 +90,7 @@ class Invoice(QDialog):
         payment_lbl = QLabel("To Pay:")
         payment_lbl.setStyleSheet(payment_style)
         payment_layout.addWidget(payment_lbl)
-        amt = f"{self.job_details.get('net_amount', "0.00"):.2f}"
+        amt = f"{self.net_amount:.2f}"
         self.amount_lbl = QLabel(amt)
         self.amount_lbl.setStyleSheet(payment_style)
         self.amount_lbl.setAlignment(Qt.AlignRight)
@@ -120,6 +127,7 @@ class Invoice(QDialog):
             }
         """
         price_validator = QRegularExpressionValidator(QRegularExpression(r"^[1-9]\d{1,4}(\.\d{1,2})?$"))
+
         #membership credit
         members_layout = QVBoxLayout()
         members_layout.setContentsMargins(0,0,0,0)
@@ -135,6 +143,21 @@ class Invoice(QDialog):
         self.txt_members.setReadOnly(True)
         members_layout.addWidget(members_label)
         members_layout.addWidget(self.txt_members)
+
+        #Advance
+        advance_layout = QVBoxLayout()
+        advance_layout.setContentsMargins(0, 0, 0, 0)
+        advance_layout.setSpacing(0)
+        advance_label = QLabel("Advance")
+        advance_label.setStyleSheet(input_field_label)
+        self.txt_advance = QLineEdit("0.00")
+        self.txt_advance.setPlaceholderText("0.00")
+        self.txt_advance.setStyleSheet(input_field_style)
+        self.txt_advance.setValidator(price_validator)
+        self.txt_advance.textChanged.connect(self.compute_payment)
+
+        advance_layout.addWidget(advance_label)
+        advance_layout.addWidget(self.txt_advance)
 
         # Cash
         cash_layout = QVBoxLayout()
@@ -179,6 +202,7 @@ class Invoice(QDialog):
         card_layout.addWidget(self.txt_card)
 
         form_layout.addLayout(members_layout)
+        form_layout.addLayout(advance_layout)
         form_layout.addLayout(cash_layout)
         form_layout.addLayout(upi_layout)
         form_layout.addLayout(card_layout)
@@ -226,14 +250,120 @@ class Invoice(QDialog):
         return actions_container
 
     def compute_payment(self, amount):
-        net_amount = float(self.job_details['net_amount']) - (float(self.txt_card.text()) + float(self.txt_cash.text()) + float(self.txt_upi.text()))
-        self.amount_lbl.setText(f"{net_amount:.2f}")
+        self.net_amount = float(self.job_details['net_amount']) - (float(self.txt_advance.text()) + float(self.txt_members.text()) + float(self.txt_card.text()) + float(self.txt_cash.text()) + float(self.txt_upi.text()))
+        self.amount_lbl.setText(f"{self.net_amount:.2f}")
+
+    def init_customer_advance(self):
+        customer_info = self.job_details['customer']
+        if customer_info:
+            advance = float(customer_info.get('advance', 0))
+            amount = float(self.net_amount)
+            if advance < amount:
+                self.txt_advance.setText(f"{advance:.2f}")
+            else:
+                self.txt_advance.setText(f"{amount:.2f}")
+        else:
+            self.txt_advance.setText('0.00')
+
+    def init_customer_credits(self):
+        customer_info = self.job_details['customer']
+        if customer_info:
+            isMember = customer_info.get("membership", {})
+            if isMember:
+                expiry = isMember.get("expiry", None)
+                if expiry:
+                    expiry = datetime.strptime(expiry, "%Y-%m-%d").date()
+                    if expiry <= datetime.today():
+                        member_amt = isMember.get("amount", 0)
+                        discount = (float(self.net_amount)*20)/100
+                        if discount < member_amt:
+                            self.txt_members.setText(f"{discount}:.2f")
+                        else:
+                            self.txt_members.setText(f"{member_amt}:.2f")
+        else:
+            self.txt_members.setText('0.00')
 
     def save_invoice(self):
-        pass
+        if float(self.net_amount > 0):
+            QMessageBox.information(self, "Error", "Please update payment methods first")
+            return
+        invoice_id = self.generate_invoice_id()
+        invoice = {
+            "_id": invoice_id,
+            "payments": {
+                "cash": self.txt_cash.text(),
+                "card": self.txt_card.text(),
+                "advance": self.txt_advance.text(),
+                "upi": self.txt_upi.text(),
+                "credits": self.txt_members.text()
+            },
+            "job": self.job_details
+        }
+        db = TinyDB(self.folder_path + "/invoice_db.json")
+        db.insert(invoice)
+        db.close()
+        self.env.set_invoice_id_counter(self.counter)
+        self.save_expenses(invoice_id)
+        self.update_customer_info()
+        self.complete_job()
+        self.invoice_response.emit(True)
+        self.close()
+
+    def generate_invoice_id(self):
+        self.counter = int(self.env.get_job_id_counter())+1
+        now = datetime.now()
+        month = f"{now.month:02d}"
+        year = now.year
+        return f"INV-{self.counter:04d}-{month}-{year}"
+
+    def save_expenses(self, invoice_id):
+        cash_amount = float(self.txt_cash.text())
+        card_amount = float(self.txt_card.text())
+        upi_amount = float(self.txt_upi.text())
+        if cash_amount > 0:
+            self.record_expenses("cash", cash_amount, invoice_id)
+        if card_amount > 0:
+            self.record_expenses("card", card_amount, invoice_id)
+        if upi_amount > 0:
+            self.record_expenses("upi", upi_amount, invoice_id)
+        
+    def record_expenses(self, method, amount, invoice_id):
+        response = {
+            "amount": amount,
+            "purpose": invoice_id,
+            "method": method,
+            "from": "",
+            "payer": "",
+            "date": date.today().isoformat(),
+            "type": "credit"
+        }
+        db = TinyDB(self.folder_path + "/accounts_db.json")
+        db.insert(response)
+        db.close()
+
+    def update_customer_info(self):
+        customer = self.job_details.get("customer", None)
+        services = self.job_details.get("services", None)
+        advance_payment = 0
+        for service in services:
+            if service['type'] == "advance":
+                advance_payment = service['price']
+        if customer:
+            advance_payment = float(advance_payment) + float(customer.get('advance', 0)) - float(self.txt_advance.text())
+            db = TinyDB(self.folder_path + "/customers_db.json")
+            Customers = Query()
+            customer_id = customer['_id']
+            db.update({"advance": advance_payment}, Customers._id == customer_id)
+            db.close()
+
+    def complete_job(self):
+        db = TinyDB(self.folder_path + "/jobs_db.json")
+        Jobs = Query()
+        db.update({"isComplete": True}, Jobs._id == self.job_details['_id'])
+        db.close()
 
     def exit(self):
-        self.invoice_response.emit(None)
+        self.invoice_response.emit(False)
         self.close()
 
     def print_invoice(self):
