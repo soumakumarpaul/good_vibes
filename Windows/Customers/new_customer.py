@@ -15,7 +15,6 @@ class NewCustomer(QDialog):
         self.setFixedSize(400, 400)
         self.db = db
         self.phone = phone
-        self.env = Environment()
         self.counter = 0
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.init_widgets()
@@ -197,8 +196,9 @@ class NewCustomer(QDialog):
         }
         # insert customer
         self.db.insert(customer)
-        self.env.set_customer_id_counter(self.counter)
-        message = "New Customer Added Successfully. "
+        env = Environment()
+        env.set_customer_id_counter(self.counter)
+        message = "New Customer Added Successfully."
         response = customer
         self.shared_data.emit(response) 
         alert = QMessageBox()
@@ -212,7 +212,8 @@ class NewCustomer(QDialog):
         now = datetime.now()
         month = f"{now.month:02d}"
         year = now.year
-        self.counter = self.env.get_customer_counter()+1
+        env = Environment()
+        self.counter = int(env.get_customer_counter())+1
         return f"CUST-{self.counter:04d}-{month}-{year}"
 
     def exit(self):

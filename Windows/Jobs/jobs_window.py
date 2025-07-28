@@ -122,18 +122,24 @@ class Jobs(QWidget):
                 self.customer_info['membership'] = results[0].get('memebership', {})
                 self.customer_info['advance'] = results[0].get('advance', {})
                 self.customer_advance_btn.setEnabled(True)
+                self.customer_name_field.setText(self.customer_info.get("name", ""))
+                membership_details = self.customer_info.get("membership", {})
+                self.membership_points.setText(f"Points: {membership_details.get("points", 0)}")
+                self.customer_advance_btn.setEnabled(True)
+                isNotMember = (membership_details.get('points', 0)) ==  0
+                if isNotMember:
+                    self.customer_loyalty_btn.setEnabled(True)
             db.close()
-            self.customer_name_field.setText(self.customer_info.get("name", ""))
-            membership_details = self.customer_info.get("membership", {})
-            self.membership_points.setText(f"Points: {membership_details.get("points", 0)}")
-            isNotMember = (membership_details.get('points', 0)) ==  0
-            if isNotMember:
-                self.customer_loyalty_btn.setEnabled(True)
+        else:
+            self.customer_advance_btn.setEnabled(False)
+            self.customer_loyalty_btn.setEnabled(False)
 
     def get_new_customer(self, data):
-        self.customer_info["_id"] = data['_id']
-        self.customer_info["name"] = data['name']
-        self.customer_info["phone"] = data['mobile']
+        if data != None:
+            self.customer_info["_id"] = data['_id']
+            self.customer_info["name"] = data.get("name", "")
+            self.customer_info["phone"] = data['mobile']
+            self.get_customer_info(data['mobile'])
     
     def init_widgets(self):
         main_layout = QVBoxLayout()
@@ -264,7 +270,7 @@ class Jobs(QWidget):
 
     def pop_advance_dialog(self):
         advance = AdvanceDialog()
-        advance.advance_respnose.connect(self.add_service_invoice)
+        advance.advance_response.connect(self.add_service_invoice)
         advance.exec()
     
     def invoice_layout(self):
@@ -513,7 +519,7 @@ class Jobs(QWidget):
             service_dialog.loyalty_response.connect(lambda data: self.update_service_invoice(data, index))
         elif particular['type'] == 'advance':
             service_dialog = AdvanceDialog(particular)
-            service_dialog.advance_respnose.connect(lambda data: self.update_service_invoice(data, index))
+            service_dialog.advance_response.connect(lambda data: self.update_service_invoice(data, index))
         service_dialog.exec()
 
     def update_service_invoice(self, service_data, index):
@@ -637,7 +643,7 @@ class Jobs(QWidget):
         self.is_job_saved = False
 
     def generate_job_id(self):
-        self.counter = self.env.get_job_id_counter()+1
+        self.counter = int(self.env.get_job_id_counter())+1
         now = datetime.now()
         month = f"{now.month:02d}"
         year = now.year

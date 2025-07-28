@@ -22,7 +22,6 @@ class MainWindow(QWidget):
         self.employee_window = None
         self.catalog_window = None
         self.job_window = None
-        self.open_dashboard()
 
     def init_shortcuts(self):
         job_shortcut = QShortcut(QKeySequence(Qt.Key_F1), self)
@@ -147,6 +146,8 @@ class MainWindow(QWidget):
 
     def get_db_conf(self):
         db_path = self.env.get_db()
+        if db_path == "":
+            self.select_db()
         self.folder_path = db_path
         settings_lbl = QLabel("DB_Path: " + db_path)
         settings_lbl.setStyleSheet("""
