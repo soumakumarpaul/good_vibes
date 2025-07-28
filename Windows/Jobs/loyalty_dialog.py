@@ -207,7 +207,7 @@ class Loyalty(QDialog):
 
     def save_loyalty(self):
         response = {
-                "service": f"Credits: {self.txt_credits_lbl.text()} Valid: {self.txt_days.text()} Days",
+                "service": f"Credits: {self.txt_credits_lbl.text()} Valid: [{self.txt_days.text()}] Days",
                 "rate": self.txt_credits_lbl.text(),
                 "discount": self.txt_percent.text(),
                 "quantity": "1",

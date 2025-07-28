@@ -32,4 +32,11 @@ class Environment:
     
     def set_customer_id_counter(self, counter):
         set_key(self.env_file, "CUSTOMER_ID", str(counter))
+
+    def get_invoice_counter(self) -> int:
+        self._reload_env()
+        return int(os.environ.get("INVOICE_ID", 0))
+    
+    def set_invoice_id_counter(self, counter):
+        set_key(self.env_file, "INVOICE_ID", str(counter))
         
