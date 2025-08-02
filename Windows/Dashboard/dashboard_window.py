@@ -133,8 +133,7 @@ class Dashboard(QWidget):
             self.add_amount_to_account(expense)
         expense_layout.addWidget(self.accounts_list)
 
-        revenue_lbl = QLabel("{:.2f}".format(float(self.revenue)))
-        revenue_lbl.setStyleSheet("""
+        revenue_styles = """
             QLabel {
                 color: #FFFFFF;
                 font-size: 30px;
@@ -143,9 +142,17 @@ class Dashboard(QWidget):
                 border: 1px solid #FFFFFF;
                 font-weight: bold;
             }
-        """)
+        """
+        revenue_layout = QHBoxLayout()
+        lbl_revenue = QLabel("Total Revenue")
+        lbl_revenue.setStyleSheet(revenue_styles)
+        revenue_lbl = QLabel("{:.2f}".format(float(self.revenue)))
+        revenue_lbl.setStyleSheet(revenue_styles)
         revenue_lbl.setAlignment(Qt.AlignRight)
-        expense_layout.addWidget(revenue_lbl)
+        revenue_layout.addWidget(lbl_revenue)
+        revenue_layout.addWidget(revenue_lbl)
+
+        expense_layout.addLayout(revenue_layout)
         return expense_layout
 
     def add_amount_to_account(self, expense):
