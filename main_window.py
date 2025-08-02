@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy, QPushButton, QGridLayout, QFileDialog, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy, QPushButton, QFileDialog, QHBoxLayout, QMessageBox
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QShortcut, QKeySequence
 from Utilities.environments import Environment
@@ -8,13 +8,14 @@ from Windows.Catalog.catalog_window import CatalogWindow
 from Windows.Dashboard.dashboard_window import Dashboard
 from Windows.Expenses.expense_dialog import Expense
 from Windows.Jobs.jobs_window import Jobs
+import os
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.env = Environment()
         self.setWindowTitle("Good Vibes - The Feels Salon Application")
-        self.showFullScreen()
+        self.showNormal()
         self.get_db_conf()
         self.init_widgets()
         self.init_shortcuts()
@@ -22,6 +23,8 @@ class MainWindow(QWidget):
         self.employee_window = None
         self.catalog_window = None
         self.job_window = None
+        if self.is_set():
+            self.open_dashboard()
 
     def init_shortcuts(self):
         job_shortcut = QShortcut(QKeySequence(Qt.Key_F1), self)
@@ -140,34 +143,26 @@ class MainWindow(QWidget):
             self.env.set_db(self.folder_path)
 
     def open_employee(self):
+        if not self.is_set():
+            return
         self.clear_layout()
         self.employee_window = Employee(self.folder_path)
         self.window_layout.addWidget(self.employee_window)
 
     def get_db_conf(self):
         db_path = self.env.get_db()
-        if db_path == "":
-            self.select_db()
         self.folder_path = db_path
-        settings_lbl = QLabel("DB_Path: " + db_path)
-        settings_lbl.setStyleSheet("""
-        QLabel {
-            font-weight: bold;
-            font-size: 14px;
-            color: #FFFFFF;
-            border: 1px solid #FFFFFF;
-            padding: 10px;
-            margin: 15px;
-        }
-        """)
-        return settings_lbl
     
     def open_customers(self):
+        if not self.is_set():
+            return
         self.clear_layout()
         self.customer_window = Customers(self.folder_path)
         self.window_layout.addWidget(self.customer_window)
 
     def open_catalog(self):
+        if not self.is_set():
+            return
         self.clear_layout()
         self.catalog_window = CatalogWindow(self.folder_path)
         self.window_layout.addWidget(self.catalog_window)
@@ -176,12 +171,16 @@ class MainWindow(QWidget):
         self.close()
 
     def open_dashboard(self):
+        if not self.is_set():
+            return
         self.clear_layout()
         self.dashboard_window = Dashboard(self.folder_path)
         self.dashboard_window.dashboard_response.connect(self.open_job)
         self.window_layout.addWidget(self.dashboard_window)
 
     def open_job(self, job_details):
+        if not self.is_set():
+            return
         self.clear_layout()
         job = Jobs(self.folder_path, job_details)
         job.jobs_response.connect(self.open_dashboard)
@@ -196,10 +195,15 @@ class MainWindow(QWidget):
                 widget.deleteLater()
 
     def record_payments(self):
+        if not self.is_set():
+            return
         expense = Expense(self.folder_path)
         expense.exec()
-        
 
-        
-
+    def is_set(self):
+        if os.path.exists(self.folder_path):
+            return True
+        else:
+            message = QMessageBox.critical(self, "Setup Error", "Please complete setup first.")
+            return False
         
