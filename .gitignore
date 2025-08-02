@@ -19,3 +19,6 @@ good-vibes-env/
 #OS Files
 .DS_Store
 Thumbs.db
+
+# Database Files
+Database/
