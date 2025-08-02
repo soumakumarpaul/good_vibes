@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QSizePolicy, QWidget, QLineEdit, QHBoxLayout, QComboBox, QPushButton, QMessageBox
-from PySide6.QtCore import Signal, Qt, QRegularExpression
-from PySide6.QtGui import QShortcut, QKeySequence, QRegularExpressionValidator
+from PySide6.QtCore import Signal, Qt
+from PySide6.QtGui import QShortcut, QKeySequence
 from tinydb import TinyDB
 
 class ServiceDialog(QDialog):
@@ -86,7 +86,8 @@ class ServiceDialog(QDialog):
 
         input_field_label = """
             QLabel {
-                font-size: 10px;
+                font-size: 18px;
+                font-weight: bold;
                 color: #C0C0C0;
                 border: 0px solid;
             }
@@ -111,14 +112,12 @@ class ServiceDialog(QDialog):
         # Price
         price_layout = QVBoxLayout()
         price_layout.setSpacing(5)
-        price_validator = QRegularExpressionValidator(QRegularExpression(r"^[1-9]\d{1,4}(\.\d{1,2})?$"))
         price_lbl = QLabel("Price")
         price_lbl.setStyleSheet(input_field_label)
         service_price = str(self.service_details.get("rate", 0.00))
         self.txt_price = QLineEdit(service_price)
         self.txt_price.setPlaceholderText("0.00")
         self.txt_price.setStyleSheet(input_field_style)
-        self.txt_price.setValidator(price_validator)
         self.txt_price.textEdited.connect(self.compute_service)
         price_layout.addWidget(price_lbl)
         price_layout.addWidget(self.txt_price)
@@ -130,10 +129,6 @@ class ServiceDialog(QDialog):
         self.txt_qty = QLineEdit("1.00")
         self.txt_qty.setPlaceholderText("0.00")
         self.txt_qty.setStyleSheet(input_field_style)
-        if self.service_details.get('type', 'service') == 'service':
-            self.txt_qty.setReadOnly(True)
-        else:
-            self.txt_qty.setReadOnly(False)
         self.txt_qty.textEdited.connect(self.compute_service)
         qty_layout.addWidget(quantity_lbl)
         qty_layout.addWidget(self.txt_qty)
@@ -149,12 +144,10 @@ class ServiceDialog(QDialog):
         # Discount
         discount_layout = QVBoxLayout()
         discount_layout.setSpacing(5)
-        discount_validator = QRegularExpressionValidator(QRegularExpression(r"^[0-9]\d{0,1}(\.\d{1,2})?$"))
         discount_lbl = QLabel("Discount")
         discount_lbl.setStyleSheet(input_field_label)
         self.txt_discount = QLineEdit(str(self.service_details.get('discount', "0.00")))
         self.txt_discount.setStyleSheet(input_field_style)
-        self.txt_discount.setValidator(discount_validator)
         self.txt_discount.textEdited.connect(self.compute_net_amount)
         discount_layout.addWidget(discount_lbl)
         discount_layout.addWidget(self.txt_discount)
@@ -162,14 +155,12 @@ class ServiceDialog(QDialog):
         # Amount
         amt_layout=QVBoxLayout()
         amt_layout.setSpacing(5)
-        amt_validator = QRegularExpressionValidator(QRegularExpression(r"^[1-9]\d{1,4}(\.\d{1,2})?$"))
         amt_lbl = QLabel("Amount")
         amt_lbl.setStyleSheet(input_field_label)
         amount = self.service_details.get("price")
         amount = amount if amount else self.service_details.get("rate", "0.00")
         self.txt_amt = QLineEdit(str(amount))
         self.txt_amt.setStyleSheet(input_field_style)
-        self.txt_amt.setValidator(amt_validator)
         self.txt_amt.textEdited.connect(self.compute_discount)
         amt_layout.addWidget(amt_lbl)
         amt_layout.addWidget(self.txt_amt)
@@ -216,44 +207,64 @@ class ServiceDialog(QDialog):
 
     #Compute the amount based on quantity and price
     def compute_service(self, txt: str):
-        rate = float(self.txt_price.text())
-        qty = float(self.txt_qty.text())
-        amount = (rate*qty)
-        discount = float(self.txt_discount.text())
-        amount = amount * (100 - discount)/100
-        self.txt_amt.setText("{:.2f}".format(amount))
+        if (self.txt_price.text().strip() != "" and 
+            self.txt_qty.text().strip() != "" and 
+            self.txt_discount.text().strip() != ""):
+            try:
+                rate = float(self.txt_price.text())
+                qty = float(self.txt_qty.text())
+                amount = (rate*qty)
+                discount = float(self.txt_discount.text())
+                amount = amount * (100 - discount)/100
+                self.txt_amt.setText("{:.2f}".format(amount))
+            except (ValueError, TypeError) as e:
+                QMessageBox.critical(self, 
+                                     "Invalid Value", 
+                                     f"Error {e}. Please enter Number for rate, quanity and discount.")
 
     def compute_discount(self, net_price: str):
-        rate = float(self.txt_price.text())
-        discount = 100 - ((float(net_price)/(rate)) * 100)
-        if 0 <= discount <= 100:
-            self.txt_discount.setText("{:.2f}".format(discount))
-        else:
-            alert = QMessageBox()
-            alert.setWindowTitle("Success")
-            alert.setText("Discount should be in between 0 and 100")
-            alert.setStandardButtons(QMessageBox.Ok)
-            alert.exec()
-            self.txt_amt.setText(str(self.service_details.get("price", "0.00")))
+        if self.txt_price.text().strip() != "" and net_price.strip() != "":
+            try:
+                rate = float(self.txt_price.text())
+                discount = 100 - ((float(net_price)/(rate)) * 100)
+                if 0 <= discount <= 100:
+                    self.txt_discount.setText("{:.2f}".format(discount))
+                else:
+                    alert = QMessageBox()
+                    alert.setWindowTitle("Success")
+                    alert.setText("Discount should be in between 0 and 100")
+                    alert.setStandardButtons(QMessageBox.Ok)
+                    alert.exec()
+                    self.txt_amt.setText(str(self.service_details.get("price", "0.00")))
+            except (ValueError, TypeError) as e:
+                QMessageBox.critical(self, 
+                                     "Invalid Value", 
+                                     f"Error {e}. Please enter Number for rate, quanity and discount.")
+
 
     def compute_net_amount(self, discount: str):
-        rate = float(self.txt_price.text())
-        quantity = float(self.txt_qty.text())
-        try:
-            discount = float(discount)
-        except:
-            discount = 0
-        if discount > 100:
-            alert = QMessageBox()
-            alert.setWindowTitle("Failed")
-            alert.setText("Discount should be in between 0 and 100")
-            alert.setStandardButtons(QMessageBox.Ok)
-            alert.exec()
-            self.txt_discount.setText("0")
-        else:
-            net_amount = (rate*quantity) * (100 - discount)/100
-            self.txt_amt.setText("{:.2f}".format(net_amount))
-            
+        if (self.txt_price.text().strip() != "" and 
+            self.txt_qty.text().strip() != "" and 
+            discount.strip() != ""):
+            try:
+                rate = float(self.txt_price.text())
+                quantity = float(self.txt_qty.text())
+                discount = float(discount)
+                if discount > 100:
+                    alert = QMessageBox()
+                    alert.setWindowTitle("Failed")
+                    alert.setText("Discount should be in between 0 and 100")
+                    alert.setStandardButtons(QMessageBox.Ok)
+                    alert.exec()
+                    self.txt_discount.setText("0")
+                else:
+                    net_amount = (rate*quantity) * (100 - discount)/100
+                    self.txt_amt.setText("{:.2f}".format(net_amount))
+            except (ValueError, TypeError) as e:
+                QMessageBox.critical(self, 
+                        "Invalid Value", 
+                        f"Error {e}. Please enter Number for rate, quanity and discount.")
+                   
     # Intialize the buttons. The Actions on the dialog like Save and Cancel
     def init_actions(self):
         actions_container = QWidget()

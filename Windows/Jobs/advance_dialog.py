@@ -103,7 +103,8 @@ class AdvanceDialog(QDialog):
 
         input_field_label = """
             QLabel {
-                font-size: 10px;
+                font-size: 18px;
+                font-weight: bold;
                 color: #C0C0C0;
                 border: 0px solid;
             }
