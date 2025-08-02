@@ -628,19 +628,24 @@ class Jobs(QWidget):
     
     # Computing the invoice amount
     def reinitialize_invoice_amount(self):
-        gross_total = 0
-        net_amount = 0
-        for service in self.job_details["services"]:
-            gross_total += float(service['rate']) * float(service['quantity'])
-            net_amount += float(service['price'])
+        if self.job_details["services"]:
+            gross_total = 0
+            net_amount = 0
+            for service in self.job_details["services"]:
+                gross_total += float(service['rate']) * float(service['quantity'])
+                net_amount += float(service['price'])
 
-        self.job_details['gross_total'] = gross_total
-        self.job_details['net_amount'] = net_amount
-        self.job_details['discount'] = gross_total - net_amount
-        discount_percent = 100 - ((net_amount/gross_total)*100)
-        self.gross_amt_label.setText("₹{:.2f}".format(self.job_details["gross_total"]))
-        self.discount_amt_label.setText("[{:.2f}%] ₹{:.2f}".format(discount_percent, self.job_details["discount"]))
-        self.net_amt_label.setText("₹{:.2f}".format(self.job_details["net_amount"]))
+            self.job_details['gross_total'] = gross_total
+            self.job_details['net_amount'] = net_amount
+            self.job_details['discount'] = gross_total - net_amount
+            discount_percent = 100 - ((net_amount/gross_total)*100)
+            self.gross_amt_label.setText("₹{:.2f}".format(self.job_details["gross_total"]))
+            self.discount_amt_label.setText("[{:.2f}%] ₹{:.2f}".format(discount_percent, self.job_details["discount"]))
+            self.net_amt_label.setText("₹{:.2f}".format(self.job_details["net_amount"]))
+        else:
+            self.gross_amt_label.setText("₹0.00")
+            self.discount_amt_label.setText("₹0.00")
+            self.net_amt_label.setText("₹0.00")
         self.is_job_saved = False
 
     def generate_job_id(self):

@@ -76,12 +76,19 @@ class Dashboard(QWidget):
         jobs_layout.setContentsMargins(0, 0, 0, 0)
 
         btn_style = """
-            background-color: #7851a9;
-            font-size: 22px;
-            font-weight: bold;
-            color: #FFFFFF;
-            border: 1px solid #C0C0C0;
-            padding: 10px;
+            QPushButton {
+                background-color: #7851a9;
+                font-size: 18px;
+                font-weight: bold;
+                color: #FFFFFF;
+                border: 1px solid #C0C0C0;
+                padding: 10px;
+            }
+            QPushButton:hover {
+                color: #7851a9;
+                background-color: #FFFFFF;
+                border: 1px solid #C0C0C0;
+            }
         """
         new_job = QPushButton("[+] New Job")
         new_job.setCursor(Qt.PointingHandCursor)
@@ -91,7 +98,7 @@ class Dashboard(QWidget):
         for index, job in enumerate(self.job_details):
             row = (index + 1) // 2
             col = (index + 1) % 2
-            btn_text = job['_id']
+            btn_text = job['_id'] if not job['customer'] else f"{job['customer'].get('name', '')}"
 
             btn = QPushButton(btn_text)
             if job.get('customer'):

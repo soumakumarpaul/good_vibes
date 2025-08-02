@@ -82,7 +82,7 @@ class Invoice(QDialog):
             QLabel {
                 font-size: 20px;
                 font-weight: bold;
-                color: #7851a9;
+                color: #FFFFFF;
                 padding: 5px;
             }
         """
@@ -100,7 +100,6 @@ class Invoice(QDialog):
 
     def init_payment_form(self):
         form_container = QWidget()
-        form_container.setStyleSheet('border: 2px solid #c0c0c0;')
         form_layout = QVBoxLayout(form_container)
 
         #Line Edit
@@ -121,9 +120,9 @@ class Invoice(QDialog):
 
         input_field_label = """
             QLabel {
-                font-size: 10px;
+                font-size: 18px;
+                font-weight: bold
                 color: #C0C0C0;
-                border: 0px solid;
             }
         """
         price_validator = QRegularExpressionValidator(QRegularExpression(r"^[1-9]\d{1,4}(\.\d{1,2})?$"))
@@ -250,8 +249,21 @@ class Invoice(QDialog):
         return actions_container
 
     def compute_payment(self, amount):
-        self.net_amount = float(self.job_details['net_amount']) - (float(self.txt_advance.text()) + float(self.txt_members.text()) + float(self.txt_card.text()) + float(self.txt_cash.text()) + float(self.txt_upi.text()))
-        self.amount_lbl.setText(f"{self.net_amount:.2f}")
+        if (self.txt_advance.text().strip != "" and 
+            self.txt_members.text().strip() != "" and
+            self.txt_card.text().strip() != "" and
+            self.txt_cash.text().strip() != "" and
+            self.txt_upi.text().strip() != ""):
+            try:
+                self.net_amount = (float(self.job_details['net_amount']) - 
+                                (float(self.txt_advance.text()) + 
+                                    float(self.txt_members.text()) + 
+                                    float(self.txt_card.text()) + 
+                                    float(self.txt_cash.text()) + 
+                                    float(self.txt_upi.text())))
+                self.amount_lbl.setText(f"{self.net_amount:.2f}")
+            except (ValueError, TypeError):
+                QMessageBox.critical(self, "Invalid Amount", "Only Numbers are allowed in amounts.")
 
     def init_customer_advance(self):
         customer_info = self.job_details['customer']
@@ -284,8 +296,8 @@ class Invoice(QDialog):
             self.txt_members.setText('0.00')
 
     def save_invoice(self):
-        if float(self.net_amount > 0):
-            QMessageBox.information(self, "Error", "Please update payment methods first")
+        if float(self.net_amount != 0):
+            QMessageBox.information(self, "Error", "Please update payment methods carefully")
             return
         invoice_id = self.generate_invoice_id()
         invoice = {
