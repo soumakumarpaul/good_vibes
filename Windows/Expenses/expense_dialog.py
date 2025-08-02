@@ -12,7 +12,7 @@ class Expense(QDialog):
         super().__init__()
         self.file_path = file_path
         self.setModal(True)
-        self.setFixedSize(500, 400)
+        self.setFixedSize(500, 500)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.init_widgets()
 
@@ -41,10 +41,11 @@ class Expense(QDialog):
             QLabel {
                 background-color: #7851a9;
                 color: #ffffff;
-                font-size: 14px;
+                font-size: 18px;
                 padding: 20px;
                 text-align: center;
                 border: 1px solid #FFFFFF;
+                font-weight: bold;
                 }
             """)
         header_label.setAlignment(Qt.AlignCenter)
