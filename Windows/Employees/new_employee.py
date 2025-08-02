@@ -77,9 +77,10 @@ class NewEmployee(QDialog):
 
         input_field_lable = """
             QLabel {
-                font-size: 10px;
+                font-size: 18px;
                 color: #C0C0C0;
                 border: 0px solid;
+                font-weight: bold;
             }
         """
         #Name

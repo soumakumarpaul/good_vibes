@@ -49,6 +49,7 @@ class Customers(QWidget):
             }
             QHeaderView::Section {
                 background-color: #7851a9;
+                font-size: 14px;
                 font-weight: bold;
                 color: #c0c0c0;
                 border: 1px solid #FFFFFF;
@@ -191,7 +192,7 @@ class Customers(QWidget):
         self.close()
 
     def add_customer(self):
-        self.new_customer_window = NewCustomer(self.search_field.text().strip())
+        self.new_customer_window = NewCustomer(db = self.db, phone = self.search_field.text().strip())
         self.new_customer_window.shared_data.connect(self.execute_new_customer)
         self.new_customer_window.show()
 
