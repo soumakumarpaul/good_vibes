@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QSizePolicy, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox
-from Utilities.environments import Environment
+from Utilities.counters import Counters
 from PySide6.QtCore import Qt, QRegularExpression, Signal
 from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence
 from datetime import datetime, date
@@ -15,8 +15,6 @@ class Invoice(QDialog):
         self.setModal(True)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setFixedSize(400, 500)
-        self.env = Environment()
-        self.counter = 0
         self.folder_path = folder_path
         self.job_details = job_details
         self.net_amount = self.job_details.get('net_amount', 0)
@@ -299,45 +297,39 @@ class Invoice(QDialog):
         if float(self.net_amount != 0):
             QMessageBox.information(self, "Error", "Please update payment methods carefully")
             return
-        invoice_id = self.generate_invoice_id()
         invoice = {
-            "_id": invoice_id,
             "payments": {
                 "cash": self.txt_cash.text(),
                 "card": self.txt_card.text(),
                 "advance": self.txt_advance.text(),
                 "upi": self.txt_upi.text(),
                 "credits": self.txt_members.text()
-            },
-            "job": self.job_details
+            }
         }
-        db = TinyDB(self.folder_path + "/invoice_db.json")
-        db.insert(invoice)
-        db.close()
-        self.env.set_invoice_id_counter(self.counter)
-        self.save_expenses(invoice_id)
-        self.update_customer_info()
-        self.complete_job()
-        self.invoice_response.emit(True)
-        self.close()
-
-    def generate_invoice_id(self):
-        self.counter = int(self.env.get_job_id_counter())+1
-        now = datetime.now()
-        month = f"{now.month:02d}"
-        year = now.year
-        return f"INV-{self.counter:04d}-{month}-{year}"
+        if self.update_customer_info():
+            self.save_expenses(self.job_details['_id'])
+            db = TinyDB(self.folder_path + "/jobs_db.json")
+            Jobs = Query()
+            db.update({'invoice': invoice, 'isComplete': True}, Jobs._id == self.job_details['_id'])
+            db.close()
+            self.invoice_response.emit(True)
+            self.close()
+        else:
+            self.exit()
 
     def save_expenses(self, invoice_id):
         cash_amount = float(self.txt_cash.text())
         card_amount = float(self.txt_card.text())
         upi_amount = float(self.txt_upi.text())
+        credit_amount = float(self.txt_members.text())
         if cash_amount > 0:
             self.record_expenses("cash", cash_amount, invoice_id)
         if card_amount > 0:
             self.record_expenses("card", card_amount, invoice_id)
         if upi_amount > 0:
             self.record_expenses("upi", upi_amount, invoice_id)
+        if credit_amount > 0:
+            self.record_expenses("credit", credit_amount, invoice_id)
         
     def record_expenses(self, method, amount, invoice_id):
         response = {
@@ -347,7 +339,7 @@ class Invoice(QDialog):
             "from": "",
             "payer": "",
             "date": date.today().isoformat(),
-            "type": "credit"
+            "type": "debit" if method == "credit" else "credit"
         }
         db = TinyDB(self.folder_path + "/accounts_db.json")
         db.insert(response)
@@ -363,16 +355,15 @@ class Invoice(QDialog):
         if customer:
             advance_payment = float(advance_payment) + float(customer.get('advance', 0)) - float(self.txt_advance.text())
             db = TinyDB(self.folder_path + "/customers_db.json")
+            credits = float(self.txt_members.text()) + float(customer.get('credits', 0))
             Customers = Query()
             customer_id = customer['_id']
-            db.update({"advance": advance_payment}, Customers._id == customer_id)
+            db.update({"advance": advance_payment, 'credit': credits}, Customers._id == customer_id)
             db.close()
-
-    def complete_job(self):
-        db = TinyDB(self.folder_path + "/jobs_db.json")
-        Jobs = Query()
-        db.update({"isComplete": True}, Jobs._id == self.job_details['_id'])
-        db.close()
+            return True
+        else:
+            QMessageBox.critical(self, "No Customers Selected", "Customer details not available. Please mention customer.")
+            return False
 
     def exit(self):
         self.invoice_response.emit(False)

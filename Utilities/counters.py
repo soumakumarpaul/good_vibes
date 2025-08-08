@@ -18,4 +18,5 @@ class Counters(object):
         else:
             value = 1
             db.insert({'name': counter_name, 'value': value})
+        db.close()
         return value

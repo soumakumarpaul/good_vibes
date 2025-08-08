@@ -9,7 +9,7 @@ from Windows.Customers.new_customer import NewCustomer
 from .service_dialog import ServiceDialog
 from .invoice_item_widget import InvoiceItemWidget
 from datetime import datetime, date
-from Utilities.environments import Environment
+from Utilities.counters import Counters
 from .invoice_dialog import Invoice
 from .loyalty_dialog import Loyalty
 from .advance_dialog import AdvanceDialog
@@ -23,8 +23,6 @@ class Jobs(QWidget):
         self.is_job_saved = False
         self.is_new_job = True
         if job_details == None:
-            self.env = Environment()
-            self.counter = 0
             self.job_details = {"_id": None, 
                                 "services": [], 
                                 "gross_total": 0, 
@@ -79,7 +77,6 @@ class Jobs(QWidget):
             if self.is_new_job:
                 jobs_db.insert(self.job_details)
                 self.is_new_job = False
-                self.env.set_job_id_counter(self.counter)
             else:
                 Job = Query()
                 jobs_db.update(self.job_details, Job._id == self.job_details["_id"])
@@ -649,8 +646,8 @@ class Jobs(QWidget):
         self.is_job_saved = False
 
     def generate_job_id(self):
-        self.counter = int(self.env.get_job_id_counter())+1
+        counter = Counters(self.file_path)
         now = datetime.now()
         month = f"{now.month:02d}"
         year = now.year
-        return f"JOB-{self.counter:04d}-{month}-{year}"
+        return f"JOB-{int(counter.get_count("JOBS")):04d}-{month}-{year}"
