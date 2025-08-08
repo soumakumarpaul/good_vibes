@@ -123,7 +123,6 @@ class Invoice(QDialog):
                 color: #C0C0C0;
             }
         """
-        price_validator = QRegularExpressionValidator(QRegularExpression(r"^[1-9]\d{1,4}(\.\d{1,2})?$"))
 
         #membership credit
         members_layout = QVBoxLayout()
@@ -134,10 +133,7 @@ class Invoice(QDialog):
         self.txt_members = QLineEdit("0.00")
         self.txt_members.setPlaceholderText("0.00")
         self.txt_members.setStyleSheet(input_field_style)
-        self.txt_members.setValidator(price_validator)
-
         self.txt_members.textChanged.connect(self.compute_payment)
-        self.txt_members.setReadOnly(True)
         members_layout.addWidget(members_label)
         members_layout.addWidget(self.txt_members)
 
@@ -150,7 +146,6 @@ class Invoice(QDialog):
         self.txt_advance = QLineEdit("0.00")
         self.txt_advance.setPlaceholderText("0.00")
         self.txt_advance.setStyleSheet(input_field_style)
-        self.txt_advance.setValidator(price_validator)
         self.txt_advance.textChanged.connect(self.compute_payment)
 
         advance_layout.addWidget(advance_label)
@@ -165,7 +160,6 @@ class Invoice(QDialog):
         self.txt_cash = QLineEdit("0.00")
         self.txt_cash.setPlaceholderText("0.00")
         self.txt_cash.setStyleSheet(input_field_style)
-        self.txt_cash.setValidator(price_validator)
         self.txt_cash.textEdited.connect(self.compute_payment)
         cash_layout.addWidget(cash_label)
         cash_layout.addWidget(self.txt_cash)
@@ -179,7 +173,6 @@ class Invoice(QDialog):
         self.txt_upi = QLineEdit("0.00")
         self.txt_upi.setPlaceholderText("0.00")
         self.txt_upi.setStyleSheet(input_field_style)
-        self.txt_upi.setValidator(price_validator)
         self.txt_upi.textEdited.connect(self.compute_payment)
         upi_layout.addWidget(upi_label)
         upi_layout.addWidget(self.txt_upi)
@@ -193,7 +186,6 @@ class Invoice(QDialog):
         self.txt_card = QLineEdit("0.00")
         self.txt_card.setPlaceholderText("0.00")
         self.txt_card.setStyleSheet(input_field_style)
-        self.txt_card.setValidator(price_validator)
         self.txt_card.textEdited.connect(self.compute_payment)
         card_layout.addWidget(card_label)
         card_layout.addWidget(self.txt_card)
