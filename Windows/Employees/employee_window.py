@@ -207,7 +207,7 @@ class Employee(QWidget):
         self.load_db(keyword)
 
     def add_employee(self):
-        self.add_employee_window = NewEmployee(self.db)
+        self.add_employee_window = NewEmployee(self.file_path)
         self.add_employee_window.shared_data.connect(self.execute_add_employee)
         self.add_employee_window.show()
 
