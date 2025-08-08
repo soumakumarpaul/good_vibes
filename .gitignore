@@ -21,4 +21,4 @@ good-vibes-env/
 Thumbs.db
 
 # Database Files
-Database/
+Database/*
