@@ -109,7 +109,7 @@ class Jobs(QWidget):
             Customer: Query = Query()
             results = db.search(Customer.mobile == phone_number)
             if results == []:
-                self.add_customer = NewCustomer(db, phone_number)
+                self.add_customer = NewCustomer(self.file_path, phone_number)
                 self.add_customer.shared_data.connect(self.get_new_customer)
                 self.add_customer.exec()
             else:
