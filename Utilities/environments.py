@@ -18,25 +18,4 @@ class Environment:
     def get_db(self) ->  str:
         self._reload_env()
         return os.environ.get("DB_PATH", "Select Folder to configure DB")
-    
-    def get_job_id_counter(self) -> int:
-        load_dotenv()
-        return int(os.environ.get("JOB_ID", 0))
-    
-    def set_job_id_counter(self, counter):
-        set_key(self.env_file, "JOB_ID", str(counter))
-
-    def get_customer_counter(self) -> int:
-        self._reload_env()
-        return int(os.environ.get("CUSTOMER_ID", 0))
-    
-    def set_customer_id_counter(self, counter):
-        set_key(self.env_file, "CUSTOMER_ID", str(counter))
-
-    def get_invoice_counter(self) -> int:
-        self._reload_env()
-        return int(os.environ.get("INVOICE_ID", 0))
-    
-    def set_invoice_id_counter(self, counter):
-        set_key(self.env_file, "INVOICE_ID", str(counter))
         

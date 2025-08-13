@@ -4,18 +4,18 @@ from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence
 from datetime import datetime
 import re
 from tinydb import TinyDB
-from Utilities.environments import Environment
+from Utilities.counters import Counters
 
 class NewCustomer(QDialog):
     shared_data = Signal(object)
     
-    def __init__(self, db, phone:str = ""):
+    def __init__(self, file_path, phone:str = ""):
         super().__init__()
         self.setModal(True)
         self.setFixedSize(400, 400)
-        self.db = db
+        self.db = TinyDB(file_path + "/customers_db.json")
+        self.file_path = file_path
         self.phone = phone
-        self.counter = 0
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.init_widgets()
         self.init_shortcut() 
@@ -197,8 +197,6 @@ class NewCustomer(QDialog):
         }
         # insert customer
         self.db.insert(customer)
-        env = Environment()
-        env.set_customer_id_counter(self.counter)
         message = "New Customer Added Successfully."
         response = customer
         self.shared_data.emit(response) 
@@ -213,9 +211,9 @@ class NewCustomer(QDialog):
         now = datetime.now()
         month = f"{now.month:02d}"
         year = now.year
-        env = Environment()
-        self.counter = int(env.get_customer_counter())+1
-        return f"CUST-{self.counter:04d}-{month}-{year}"
+        counter = Counters(self.file_path)
+        id = int(counter.get_count("CUSTOMERS"))
+        return f"CUST-{id:04d}-{month}-{year}"
 
     def exit(self):
         self.shared_data.emit(None)

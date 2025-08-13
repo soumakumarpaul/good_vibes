@@ -1,9 +1,9 @@
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy, QPushButton, QLineEdit, QComboBox, QListView, QMessageBox
 from PySide6.QtCore import Qt, QRegularExpression, Signal
-from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence, QStandardItem, QStandardItemModel
-from tinydb import Query
+from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence
 from datetime import datetime
 import re
+from Utilities.counters import Counters
 
 class NewEmployee(QDialog):
     shared_data = Signal(object)
@@ -12,7 +12,7 @@ class NewEmployee(QDialog):
         super().__init__()
         self.setModal(True)
         self.setFixedSize(400, 400)
-        self.db = db
+        self.db = db + "/employee_db.json"
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.init_widgets()
         self.init_shortcut()
@@ -157,21 +157,12 @@ class NewEmployee(QDialog):
         return actions_container
 
     def generate_id(self):
-        records = self.db.all()
         now = datetime.now()
         month = f"{now.month:02d}"
         year = now.year
-
-        if records:
-            last_id = records[-1].get("id", "")
-            match = re.match(r"EMP-(\d+)-\d{2}-\d{4}", last_id)
-            if match:
-                last_seq = int(match.group(1))
-            else:
-                last_seq = 0
-        else:
-            last_seq = 0
-        return f"EMP-{last_seq+1:03d}-{month}-{year}"
+        counter = Counters(self.db)
+        seq = int(counter.get_count("EMPLOYEE"))
+        return f"EMP-{seq:03d}-{month}-{year}"
 
     def exit(self):
         self.shared_data.emit(None)

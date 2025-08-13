@@ -102,7 +102,7 @@ class MainWindow(QWidget):
         self.customers_button.setCursor(Qt.PointingHandCursor)
         self.customers_button.clicked.connect(self.open_customers)
 
-        self.catalog_button = QPushButton("Services [F3]")
+        self.catalog_button = QPushButton("Credits [F3]")
         self.catalog_button.setStyleSheet(buttons_style)
         self.catalog_button.setCursor(Qt.PointingHandCursor)
         self.catalog_button.clicked.connect(self.open_catalog)
@@ -112,7 +112,7 @@ class MainWindow(QWidget):
         self.employees_button.setCursor(Qt.PointingHandCursor)
         self.employees_button.clicked.connect(self.open_employee)
 
-        self.payments_button = QPushButton("Payments [F5]")
+        self.payments_button = QPushButton("Expenses [F5]")
         self.payments_button.setStyleSheet(buttons_style)
         self.payments_button.setCursor(Qt.PointingHandCursor)
         self.payments_button.clicked.connect(self.record_payments)
