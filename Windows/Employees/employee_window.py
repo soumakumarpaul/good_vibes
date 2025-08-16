@@ -175,7 +175,7 @@ class Employee(QWidget):
         return table_view
 
     def load_db(self, keyword: str = ""):
-        headers = ["ID", "Name", "Phone"]
+        headers = ["ID", "Name", "Phone", "Status"]
         records = []
         model: QStandardItemModel = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
