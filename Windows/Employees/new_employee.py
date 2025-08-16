@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from PySide6.QtCore import Qt, QRegularExpression, Signal
 from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence
 from datetime import datetime
-import re
+from tinydb import TinyDB
 from Utilities.counters import Counters
 
 class NewEmployee(QDialog):
@@ -12,7 +12,7 @@ class NewEmployee(QDialog):
         super().__init__()
         self.setModal(True)
         self.setFixedSize(400, 400)
-        self.db = db + "/employee_db.json"
+        self.db = db
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.init_widgets()
         self.init_shortcut()
@@ -172,9 +172,12 @@ class NewEmployee(QDialog):
         employee = {
             "_id": self.generate_id(),
             "name": self.employee_name.text().strip(),
-            "mobile": self.phone_number.text().strip()
+            "mobile": self.phone_number.text().strip(),
+            "isEmployed": True
         }
-        self.db.insert(employee)
+        employee_db = TinyDB(self.db + "/employee_db.json")
+        employee_db.insert(employee)
+        employee_db.close()
         response = {"Name": self.employee_name.text().strip(), "Phone": self.phone_number.text().strip()}
         self.shared_data.emit(response)
         alert = QMessageBox()
