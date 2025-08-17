@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy, QPushButton, QLineEdit, QComboBox, QMessageBox
-from PySide6.QtCore import Qt, QRegularExpression, Signal
+from PySide6.QtCore import Qt, QRegularExpression, Signal, QTimer
 from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence
 from datetime import datetime
 import re
@@ -19,7 +19,9 @@ class NewCustomer(QDialog):
         self.phone = phone
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.init_widgets()
-        self.init_shortcut() 
+        self.init_shortcut()
+        QTimer.singleShot(0, self.customer_name.setFocus)
+        self.customer_name.setCursorPosition(0)
 
     def init_shortcut(self):
         esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
@@ -144,8 +146,8 @@ class NewCustomer(QDialog):
         gender_layout.addSpacing(5)
         gender_layout.addWidget(self.gender_combo)
 
-        form_layout.addLayout(name_layout)
         form_layout.addLayout(phone_layout)
+        form_layout.addLayout(name_layout)
         form_layout.addLayout(gender_layout)
         form_layout.addStretch(1)
         return form_container
