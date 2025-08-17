@@ -5,6 +5,7 @@ from datetime import datetime
 import re
 from tinydb import TinyDB
 from Utilities.counters import Counters
+from Windows.General.select_box import SelectBox
 
 class NewCustomer(QDialog):
     shared_data = Signal(object)
@@ -135,7 +136,8 @@ class NewCustomer(QDialog):
         gender_layout.setSpacing(0)
         gender_lbl = QLabel("Gender")
         gender_lbl.setStyleSheet(input_field_lable)
-        self.gender_combo = QComboBox()
+        self.gender_combo = SelectBox()
+        self.gender_combo.setFocusPolicy(Qt.StrongFocus)
         self.gender_combo.addItems(["Female", "Male", "Other"])
         self.gender_combo.setStyleSheet(input_field_style)
         gender_layout.addWidget(gender_lbl)
