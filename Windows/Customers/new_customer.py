@@ -193,7 +193,7 @@ class NewCustomer(QDialog):
     def save_customer(self):
         customer = {
             "_id": self.generate_id(),
-            "name": self.customer_name.text().strip(),
+            "name": self.customer_name.text().strip().title(),
             "mobile": self.phone_number.text().strip(),
             "gender": self.gender_combo.currentText(),
             "registered_on": datetime.today().strftime("%d %b %Y"),

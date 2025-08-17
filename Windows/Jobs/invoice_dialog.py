@@ -1,10 +1,10 @@
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QSizePolicy, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox
-from Utilities.counters import Counters
-from PySide6.QtCore import Qt, QRegularExpression, Signal
-from PySide6.QtGui import QRegularExpressionValidator, QShortcut, QKeySequence
-from datetime import datetime, date
+from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtGui import QShortcut, QKeySequence
+from datetime import date
 from tinydb import TinyDB, Query
-import re
+from Utilities.counters import Counters
+from datetime import datetime, date
 
 class Invoice(QDialog):
 
@@ -21,6 +21,10 @@ class Invoice(QDialog):
         self.init_shortcuts()
         self.init_widgets()
         self.init_customer_advance()
+
+        QTimer.singleShot(0, self.txt_upi.setFocus)
+        self.txt_upi.selectAll()
+        self.txt_upi.setCursorPosition(len(self.txt_upi.text()))
 
     def init_shortcuts(self):
         exit_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
@@ -192,10 +196,6 @@ class Invoice(QDialog):
         self.txt_credit.textEdited.connect(self.compute_payment)
         credit_layout.addWidget(credit_label)
         credit_layout.addWidget(self.txt_credit)
-
-        self.txt_upi.setFocus()
-        self.txt_upi.selectAll()
-        self.txt_upi.setCursorPosition(len(self.txt_upi.text()))
         
         form_layout.addLayout(upi_layout)
         form_layout.addLayout(cash_layout)
@@ -282,24 +282,38 @@ class Invoice(QDialog):
             QMessageBox.information(self, "Error", "Please update payment methods carefully")
             return
         invoice = {
+            "_id": self.generate_invoice_id(),
             "payments": {
                 "cash": self.txt_cash.text(),
                 "card": self.txt_card.text(),
                 "advance": self.txt_advance.text(),
                 "upi": self.txt_upi.text(),
                 "credits": self.txt_credit.text()
-            }
+            },
+            "details": self.job_details,
+            "date":  date.today().isoformat(),
+            "time": datetime.now().time().isoformat(timespec="seconds")
         }
         if self.update_customer_info():
             self.save_expenses(self.job_details['_id'])
             db = TinyDB(self.folder_path + "/jobs_db.json")
             Jobs = Query()
-            db.update({'invoice': invoice, 'isComplete': True}, Jobs._id == self.job_details['_id'])
+            db.update({'isComplete': True}, Jobs._id == self.job_details['_id'])
             db.close()
+            invoice_db = TinyDB(self.folder_path + "/invoice_db.json")
+            invoice_db.insert(invoice)
+            invoice_db.close()
             self.invoice_response.emit(True)
             self.close()
         else:
             self.exit()
+
+    def generate_invoice_id(self):
+        counter = Counters(self.file_path)
+        now = datetime.now()
+        month = f"{now.month:02d}"
+        year = now.year
+        return f"INV-{int(counter.get_count("INVOICE")):04d}-{month}-{year}"
 
     def save_expenses(self, invoice_id):
         cash_amount = float(self.txt_cash.text())
@@ -347,10 +361,9 @@ class Invoice(QDialog):
             customer_id = customer['_id']
             db.update({"advance": advance_payment, 'credit': credits}, Customers._id == customer_id)
             db.close()
-            return True
         else:
-            QMessageBox.critical(self, "No Customers Selected", "Customer details not available. Please mention customer.")
-            return False
+            QMessageBox.critical(self, "No Customers Selected", "Customer details not available. Always mention customer details.")
+        return True
 
     def exit(self):
         self.invoice_response.emit(False)

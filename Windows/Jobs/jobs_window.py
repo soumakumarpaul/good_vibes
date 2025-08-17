@@ -100,13 +100,6 @@ class Jobs(QWidget):
             self.is_job_saved = True
 
     def invoice(self):
-        if not self.job_details['customer']:
-            reply = QMessageBox.question(self, "Save Confirmation", 
-                                 "No Customer Provided. Proceed Anyway?", 
-                                 QMessageBox.Yes | QMessageBox.No, 
-                                 QMessageBox.No)
-            if reply == QMessageBox.No:
-                return
         for service in self.job_details['services']:
             if service['server'] == "":
                 reply = QMessageBox.question(self, "Save Confirmation",
@@ -119,6 +112,13 @@ class Jobs(QWidget):
             QMessageBox.information(self, "Save Job", "No Services Added.", QMessageBox.Ok)
         else:
             self.save()
+            if self.job_details.get('customer', {}) == {}:
+                reply = QMessageBox.question(self, "Save Confirmation", 
+                                 "No Customer Provided. Proceed Anyway?", 
+                                 QMessageBox.Yes | QMessageBox.No, 
+                                 QMessageBox.No)
+                if reply == QMessageBox.No:
+                    return
             invoice = Invoice(self.file_path, self.job_details)
             invoice.invoice_response.connect(self.execute_invoice)
             invoice.exec()
