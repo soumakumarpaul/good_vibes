@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QApplication, QMessageBox, QWidget, QPushButton, QVBoxLayout, QTableView, QHeaderView, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QKeySequence, QShortcut
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from tinydb import TinyDB, Query
 from PySide6.QtWidgets import QAbstractItemView
 from .new_customer import NewCustomer
@@ -15,7 +15,7 @@ class Customers(QWidget):
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.init_widgets()
         self.init_shortcuts()
-        self.search_field.setFocus()
+        QTimer.singleShot(0, self.search_field.setFocus)
         self.search_field.setCursorPosition(0)
 
     def init_db(self):
@@ -39,14 +39,6 @@ class Customers(QWidget):
         reload_shortcut = QShortcut(QKeySequence("Ctrl+R"), self)
         reload_shortcut.setContext(Qt.WindowShortcut)
         reload_shortcut.activated.connect(self.clear_customers)
-
-        return_shortcut = QShortcut(QKeySequence("Return"), self.table_view)
-        return_shortcut.setContext(Qt.WidgetShortcut)
-        return_shortcut.activated.connect(self.return_pressed_on_customer)
-
-        enter_shortcut = QShortcut(QKeySequence("Enter"), self.table_view)
-        enter_shortcut.setContext(Qt.WidgetShortcut)
-        enter_shortcut.activated.connect(self.return_pressed_on_customer)
     
     def init_widgets(self):
         self.table_view = QTableView()
@@ -65,11 +57,12 @@ class Customers(QWidget):
                 border: 1px solid #FFFFFF;
             }
         """)
-        self.table_view.setEditTriggers(QTableView.NoEditTriggers)
+        self.table_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table_view.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table_view.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table_view.verticalHeader().setVisible(False)
+        self.table_view.clicked.connect(self.return_pressed_on_customer)
 
         #Buttons
         buttons_container = QWidget()
@@ -187,7 +180,6 @@ class Customers(QWidget):
         self.table_view.setModel(self.model)
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table_view.verticalHeader().setVisible(False)
-        self.table_view.clicked.connect(self.on_customer_selected)
 
     def on_customer_selected(self, index):
         row = index.row()
@@ -197,9 +189,8 @@ class Customers(QWidget):
         QMessageBox.information(self, 
                                 "Customer", "Customer Copied!")
         
-    def return_pressed_on_customer(self):
-        if self.table_view.hasFocus(): return
-        index = self.table_view.currentIndex()
+    def return_pressed_on_customer(self, index):
+        print(index)
         if index.isValid():
             self.on_customer_selected(index=index)
 
