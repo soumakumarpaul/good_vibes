@@ -195,6 +195,7 @@ class Invoice(QDialog):
 
         self.txt_upi.setFocus()
         self.txt_upi.selectAll()
+        self.txt_upi.setCursorPosition(len(self.txt_upi.text()))
         
         form_layout.addLayout(upi_layout)
         form_layout.addLayout(cash_layout)
