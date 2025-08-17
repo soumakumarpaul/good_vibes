@@ -117,6 +117,8 @@ class AdvanceDialog(QDialog):
         self.amount_txt = QLineEdit(payment)
         self.amount_txt.setPlaceholderText("Advance Amount")
         self.amount_txt.setStyleSheet(input_field_style)
+        self.amount_txt.setFocus()
+        self.amount_txt.selectAll()
 
         form_layout.addWidget(amount_lbl)
         form_layout.addWidget(self.amount_txt)

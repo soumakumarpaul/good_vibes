@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QGridLayout, QListView, QListWidget, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout, QMessageBox, QListWidgetItem
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QKeySequence, QShortcut
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from tinydb import TinyDB, Query
 from PySide6.QtWidgets import QAbstractItemView
 import re
@@ -39,9 +39,9 @@ class Jobs(QWidget):
         self.init_widgets()
         self.activateWindow()
         self.raise_()
-        self.cust_phone.setFocus()
-        self.cust_phone.setCursorPosition(0)
+        QTimer.singleShot(0, self.cust_phone.setFocus)
         self.cust_phone.selectAll()
+        self.cust_phone.setCursorPosition(0)
 
     def closeEvent(self, event):
         if not self.is_job_saved:
@@ -218,6 +218,7 @@ class Jobs(QWidget):
         """)
         customer_phone.textChanged.connect(self.get_customer_info)
         customer_phone.returnPressed.connect(self.paste_customer)
+        customer_phone.setFocusPolicy(Qt.StrongFocus)
         self.cust_phone = customer_phone
 
         customer_layout.addWidget(customer_phone)
@@ -415,6 +416,7 @@ class Jobs(QWidget):
             }
         """)
         search_bar.textEdited.connect(lambda text: self.search_services(text))
+        self.search_input = search_bar
 
         self.services_list = QListView()
         self.services_list.setStyleSheet("""
@@ -446,7 +448,6 @@ class Jobs(QWidget):
 
         services_layout.addWidget(search_bar)
         services_layout.addWidget(self.services_list)
-
         return services_layout
 
     def search_services(self, search_keyword: str = ""):
@@ -461,6 +462,9 @@ class Jobs(QWidget):
             model.appendRow(service_item)
         self.service_list_model = model
         self.services_list.setModel(model)
+        self.search_input.setFocus()
+        self.search_input.setCursorPosition(0)
+        self.search_input.selectAll()
 
     # Select the service from the service picker
     def on_service_selected(self, index):
