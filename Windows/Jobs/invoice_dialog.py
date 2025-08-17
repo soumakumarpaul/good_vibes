@@ -194,6 +194,7 @@ class Invoice(QDialog):
         credit_layout.addWidget(self.txt_credit)
 
         self.txt_upi.setFocus()
+        self.txt_upi.selectAll()
         
         form_layout.addLayout(upi_layout)
         form_layout.addLayout(cash_layout)

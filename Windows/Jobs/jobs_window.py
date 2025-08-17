@@ -1,6 +1,6 @@
-from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGridLayout, QListView, QListWidget, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout, QMessageBox, QListWidgetItem
+from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QGridLayout, QListView, QListWidget, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout, QMessageBox, QListWidgetItem
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QKeySequence, QShortcut
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from tinydb import TinyDB, Query
 from PySide6.QtWidgets import QAbstractItemView
 import re
@@ -37,14 +37,19 @@ class Jobs(QWidget):
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.init_shortcuts()
         self.init_widgets()
+        self.activateWindow()
+        self.raise_()
+        QTimer.singleShot(0, self.cust_phone.setFocus)
+        self.cust_phone.selectAll()
+        self.cust_phone.setCursorPosition(0)
 
     def closeEvent(self, event):
         if not self.is_job_saved:
             if QMessageBox.question(self, 
                                     "Exit Confirmation", "Close without Saving the job?",
                                     QMessageBox.Yes | QMessageBox.No,
-                                    QMessageBox.No) == QMessageBox.Yes:
-                event.ignroe()
+                                    QMessageBox.No) == QMessageBox.No:
+                event.ignore()
         event.accept() 
 
     def init_shortcuts(self):
@@ -146,17 +151,10 @@ class Jobs(QWidget):
                 self.customer_info['advance'] = results[0].get('advance', 0)
                 self.customer_advance_btn.setEnabled(True)
                 self.customer_name_field.setText(self.customer_info.get("name", ""))
-                membership_details = self.customer_info.get("membership", {})
-                validity = membership_details.get("expiry", "")
-                self.membership_points.setText(f"Points: {membership_details.get("points", 0)} [Validity: {validity}]")
                 self.customer_advance_btn.setEnabled(True)
-                isNotMember = (membership_details.get('points', 0)) ==  0
-                if isNotMember:
-                    self.customer_loyalty_btn.setEnabled(True)
             db.close()
         else:
             self.customer_advance_btn.setEnabled(False)
-            self.customer_loyalty_btn.setEnabled(False)
 
     def get_new_customer(self, data):
         if data != None:
@@ -194,6 +192,10 @@ class Jobs(QWidget):
         header_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         return header_label
     
+    def paste_customer(self):
+        clipboard = QApplication.clipboard()
+        self.cust_phone.setText(clipboard.text())
+
     def init_customer(self):
         customer_container = QWidget()
         customer_container.setContentsMargins(0, 0, 0, 0)
@@ -215,6 +217,9 @@ class Jobs(QWidget):
             }
         """)
         customer_phone.textChanged.connect(self.get_customer_info)
+        customer_phone.returnPressed.connect(self.paste_customer)
+        customer_phone.setFocusPolicy(Qt.StrongFocus)
+        self.cust_phone = customer_phone
 
         customer_layout.addWidget(customer_phone)
 
@@ -247,7 +252,7 @@ class Jobs(QWidget):
         """)
         self.membership_points = customer_points
 
-        #customer loyalty section
+        #customer advance section
         loyalty_layout = QHBoxLayout()
         btn_style = """
             QPushButton {
@@ -263,18 +268,12 @@ class Jobs(QWidget):
                 color: #7851a9;
             }
         """
-        self.customer_loyalty_btn = QPushButton("Add Membership")
-        self.customer_loyalty_btn.setEnabled(False)
-        self.customer_loyalty_btn.setStyleSheet(btn_style)
-        self.customer_loyalty_btn.setCursor(Qt.PointingHandCursor)
-        self.customer_loyalty_btn.clicked.connect(self.pop_membership_dialog)
 
         self.customer_advance_btn = QPushButton("Advance")
         self.customer_advance_btn.setEnabled(False)
         self.customer_advance_btn.setStyleSheet(btn_style)
         self.customer_advance_btn.setCursor(Qt.PointingHandCursor)
         self.customer_advance_btn.clicked.connect(self.pop_advance_dialog)
-        loyalty_layout.addWidget(self.customer_loyalty_btn)
         loyalty_layout.addWidget(self.customer_advance_btn)
 
         customer_info_layout.addWidget(self.customer_name_field)
@@ -417,6 +416,7 @@ class Jobs(QWidget):
             }
         """)
         search_bar.textEdited.connect(lambda text: self.search_services(text))
+        self.search_input = search_bar
 
         self.services_list = QListView()
         self.services_list.setStyleSheet("""
@@ -448,7 +448,6 @@ class Jobs(QWidget):
 
         services_layout.addWidget(search_bar)
         services_layout.addWidget(self.services_list)
-
         return services_layout
 
     def search_services(self, search_keyword: str = ""):
@@ -463,6 +462,9 @@ class Jobs(QWidget):
             model.appendRow(service_item)
         self.service_list_model = model
         self.services_list.setModel(model)
+        self.search_input.setFocus()
+        self.search_input.setCursorPosition(0)
+        self.search_input.selectAll()
 
     # Select the service from the service picker
     def on_service_selected(self, index):

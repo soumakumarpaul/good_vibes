@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QTableView, QHeaderView, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import QApplication, QMessageBox, QWidget, QPushButton, QVBoxLayout, QTableView, QHeaderView, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QKeySequence, QShortcut
 from PySide6.QtCore import Qt
 from tinydb import TinyDB, Query
@@ -15,6 +15,8 @@ class Customers(QWidget):
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.init_widgets()
         self.init_shortcuts()
+        self.search_field.setFocus()
+        self.search_field.setCursorPosition(0)
 
     def init_db(self):
         if self.db is not None:
@@ -32,11 +34,19 @@ class Customers(QWidget):
 
         search_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
         search_shortcut.setContext(Qt.WindowShortcut)
-        search_shortcut.activated.connect(self.search_customers)
+        search_shortcut.activated.connect(self.search_customers_with_focus)
 
         reload_shortcut = QShortcut(QKeySequence("Ctrl+R"), self)
         reload_shortcut.setContext(Qt.WindowShortcut)
         reload_shortcut.activated.connect(self.clear_customers)
+
+        return_shortcut = QShortcut(QKeySequence("Return"), self.table_view)
+        return_shortcut.setContext(Qt.WidgetShortcut)
+        return_shortcut.activated.connect(self.return_pressed_on_customer)
+
+        enter_shortcut = QShortcut(QKeySequence("Enter"), self.table_view)
+        enter_shortcut.setContext(Qt.WidgetShortcut)
+        enter_shortcut.activated.connect(self.return_pressed_on_customer)
     
     def init_widgets(self):
         self.table_view = QTableView()
@@ -92,7 +102,7 @@ class Customers(QWidget):
 
         self.add_button.clicked.connect(self.add_customer)
         self.exit_button.clicked.connect(self.exit_customers)
-        self.search_button.clicked.connect(self.search_customers)
+        self.search_button.clicked.connect(self.search_customers_with_focus)
         self.clear_button.clicked.connect(self.clear_customers)
 
         #Header label
@@ -131,7 +141,8 @@ class Customers(QWidget):
             }
         """)
         search_bar.setMaximumWidth(300)
-        search_bar.returnPressed.connect(self.search_customers)
+        search_bar.textEdited.connect(self.search_customers)
+        search_bar.returnPressed.connect(self.search_customers_with_focus)
         self.search_field = search_bar
 
         buttons_layout.addWidget(search_bar)
@@ -148,10 +159,9 @@ class Customers(QWidget):
 
         self.setLayout(main_layout)
         self.load_db()
-        self.search_field.setFocus()
 
     def load_db(self, keyword: str = ""):
-        headers = ["ID", "Name", "Phone", "Gender", "Registered On", "Timestamp"]
+        headers = ["ID", "Name", "Phone", "Gender", "Registered On", "Timestamp", "Advance", "Credits"]
         records = []
         customer: Query = Query()
         if keyword == "":       
@@ -162,31 +172,50 @@ class Customers(QWidget):
                 (customer.mobile.matches(f".*{keyword}.*", flags=re.IGNORECASE))
                 )
         records = sorted(records, key=lambda x: x.get("timestamp", 0), reverse=True)
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
+        self.model = QStandardItemModel()
+        self.model.setHorizontalHeaderLabels(headers)
         if records:
             header_key = list(records[0].keys())
             for row_data in records:
                 items = [QStandardItem(str(row_data.get(col, ""))) for col in header_key]
-                model.appendRow(items)
+                self.model.appendRow(items)
         else:
-            model.setColumnCount(len(headers))
-            model.appendRow([QStandardItem("No Matching Records Found")])
+            self.model.setColumnCount(len(headers))
+            self.model.appendRow([QStandardItem("No Matching Records Found")])
             if re.match(r"^[6-9]\d{9}$", keyword):
                 self.add_customer()
-        self.table_view.setModel(model)
+        self.table_view.setModel(self.model)
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table_view.verticalHeader().setVisible(False)
+        self.table_view.clicked.connect(self.on_customer_selected)
 
-    def search_customers(self):
-        self.search_field.setFocus()
+    def on_customer_selected(self, index):
+        row = index.row()
+        customer_phone = self.model.item(row, 2). text()
+        clipboard = QApplication.clipboard()
+        clipboard.setText(customer_phone)
+        QMessageBox.information(self, 
+                                "Customer", "Customer Copied!")
+        
+    def return_pressed_on_customer(self):
+        if self.table_view.hasFocus(): return
+        index = self.table_view.currentIndex()
+        if index.isValid():
+            self.on_customer_selected(index=index)
+
+    def search_customers_with_focus(self):
+        self.search_customers() 
+        self.table_view.setFocus()
+        self.table_view.selectRow(0)
+
+    def search_customers(self, keyword = ""):
         keyword = self.search_field.text().strip()
         self.load_db(keyword)
 
     def clear_customers(self):
         self.search_field.clear()
         self.init_db()
-        self.search_customers()
+        self.search_customers_with_focus()
 
     def exit_customers(self):
         self.close()
