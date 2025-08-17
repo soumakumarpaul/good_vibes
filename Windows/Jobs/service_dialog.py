@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QSizePolicy, QWidget
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QShortcut, QKeySequence
 from tinydb import TinyDB
+from Windows.General.select_box import SelectBox
 
 class ServiceDialog(QDialog):
     service_data = Signal(object)
@@ -16,6 +17,9 @@ class ServiceDialog(QDialog):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.init_shortucts()
         self.init_widgets()
+        self.txt_price.setFocus()
+        self.txt_price.selectAll()
+        self.txt_price.setCursorPosition(0)
 
     # Initialize all window shortcuts for this dialog
     def init_shortucts(self):
@@ -175,11 +179,12 @@ class ServiceDialog(QDialog):
         server_layout.setSpacing(0)
         server_lbl = QLabel("Server Name:")
         server_lbl.setStyleSheet(input_field_label)
-        self.server_combo = QComboBox()
+        self.server_combo = SelectBox()
         self.server_combo.addItem("")
         self.server_combo.addItems(servers)
         self.server_combo.setCurrentText(self.service_details.get("server", ""))
         self.server_combo.setStyleSheet(input_field_style)
+        self.server_combo.setFocusPolicy(Qt.StrongFocus)
         server_layout.addWidget(server_lbl)
         server_layout.addWidget(self.server_combo)
 
@@ -189,11 +194,12 @@ class ServiceDialog(QDialog):
         helper_layout.setSpacing(0)
         helper_lbl = QLabel("Helper Name:")
         helper_lbl.setStyleSheet(input_field_label)
-        self.helper_combo = QComboBox()
+        self.helper_combo = SelectBox()
         self.helper_combo.addItem("")
         self.helper_combo.addItems(servers)
         self.helper_combo.setCurrentText(self.service_details.get("helper", ""))
         self.helper_combo.setStyleSheet(input_field_style)
+        self.helper_combo.setFocusPolicy(Qt.StrongFocus)
         helper_layout.addWidget(helper_lbl)
         helper_layout.addWidget(self.helper_combo)
 
