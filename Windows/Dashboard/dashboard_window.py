@@ -13,25 +13,14 @@ class Dashboard(QWidget):
         self.file_path = file_path
         self.job_details = self.init_jobs()
         self.revenue = 0
-        self.expenses = self.init_expenses()
         self.init_widgets()
 
     def init_jobs(self):
         db = TinyDB(self.file_path + "/jobs_db.json")
         Jobs = Query()
-        result = db.search((Jobs.isComplete == False) & (Jobs.date == date.today().isoformat()))
+        result = db.search((Jobs.date == date.today().isoformat()))
         db.close()
         return result
-
-    def init_expenses(self):
-        db = TinyDB(self.file_path + "/accounts_db.json")
-        Accounts = Query()
-        today = date.today()
-        first_day = today.replace(day=1).isoformat()
-        today = today.isoformat()
-        results = db.search((Accounts.date >= first_day) & (Accounts.date <= today))
-        db.close()
-        return results
 
     def init_widgets(self):
         main_layout = QVBoxLayout()
@@ -44,10 +33,6 @@ class Dashboard(QWidget):
 
         #Add Jobs Layout
         dashboard_layout.addWidget(self.init_jobs_layout(), alignment=Qt.AlignTop)
-        #Add Expense Layout
-        dashboard_layout.addLayout(self.init_accounts())
-        dashboard_layout.setStretch(0, 1)
-        dashboard_layout.setStretch(1, 1)
         main_layout.addLayout(dashboard_layout)
         self.setLayout(main_layout)
 
@@ -77,30 +62,47 @@ class Dashboard(QWidget):
 
         btn_style = """
             QPushButton {
-                background-color: #7851a9;
+                background-color: #FFFFFF;
                 font-size: 18px;
                 font-weight: bold;
-                color: #FFFFFF;
+                color: #7851a9;
                 border: 1px solid #C0C0C0;
                 padding: 10px;
+                margin: 10px;
             }
             QPushButton:hover {
-                color: #7851a9;
-                background-color: #FFFFFF;
+                color: #FFFFFF;
+                background-color: #7851a9;
                 border: 1px solid #C0C0C0;
             }
         """
+
+        disabled_btn = """
+            QPushButton {
+                background-color: #C0C0C0;
+                font-size: 18px;
+                font-weight: bold;
+                color: #2c2c2c;
+                border: 1px solid #FFFFFF;
+                padding: 10px;
+                margin: 10px;
+            }   
+        """
         new_job = QPushButton("[+] New Job")
         new_job.setCursor(Qt.PointingHandCursor)
+        new_job.setMaximumWidth(350)
         new_job.setStyleSheet(btn_style)
         new_job.clicked.connect(lambda checked = False, details=None: self.initate_job(details))
         jobs_layout.addWidget(new_job)
         for index, job in enumerate(self.job_details):
-            row = (index + 1) // 2
-            col = (index + 1) % 2
+            row = (index + 1) // 3
+            col = (index + 1) % 3
             btn_text = job['_id'] if not job['customer'] else f"{job['customer'].get('name', '')}"
 
             btn = QPushButton(btn_text)
+            btn.setMaximumWidth(350)
+            if job['isComplete'] == True:
+                btn.setEnabled(False)
             if job.get('customer'):
                 btn.setToolTip(f"{job['customer'].get('name', '')} - {job['customer'].get('phone', '')}")
             btn.setStyleSheet(btn_style)
@@ -113,61 +115,3 @@ class Dashboard(QWidget):
     def initate_job(self, job_details = None):
         self.dashboard_response.emit(job_details)
         self.close()
-
-    def init_accounts(self):
-        expense_layout = QVBoxLayout()
-        expense_layout.setContentsMargins(0, 0, 0, 0)
-        expense_layout.setSpacing(0)
-        self.accounts_list = QListWidget()
-        self.accounts_list.setStyleSheet("""
-            QListWidget {
-                background-color: #ffffff;
-                border: 1px solid #7851a9;
-            }
-            QListWidget::item {
-                border-bottom: 1px solid #7851a9;
-            }
-            QListWidget::item:selected {
-                background-color: #f2f2f2;
-            }
-        """)
-
-        for expense in self.expenses:
-            if expense['type'] == 'debit':
-                self.revenue -= float(expense['amount'])
-            else:
-                self.revenue += float(expense['amount'])
-            self.add_amount_to_account(expense)
-        expense_layout.addWidget(self.accounts_list)
-
-        revenue_styles = """
-            QLabel {
-                color: #FFFFFF;
-                font-size: 30px;
-                padding: 5px;
-                margin: 5px;
-                border: 1px solid #FFFFFF;
-                font-weight: bold;
-            }
-        """
-        revenue_layout = QHBoxLayout()
-        lbl_revenue = QLabel("Total Revenue")
-        lbl_revenue.setStyleSheet(revenue_styles)
-        revenue_lbl = QLabel("{:.2f}".format(float(self.revenue)))
-        revenue_lbl.setStyleSheet(revenue_styles)
-        revenue_lbl.setAlignment(Qt.AlignRight)
-        revenue_layout.addWidget(lbl_revenue)
-        revenue_layout.addWidget(revenue_lbl)
-
-        expense_layout.addLayout(revenue_layout)
-        return expense_layout
-
-    def add_amount_to_account(self, expense):
-        item = QListWidgetItem()
-        widget = AccountsItemWidget(expense)
-        widget.adjustSize()
-        item.setSizeHint(widget.sizeHint())
-        self.accounts_list.addItem(item)
-        self.accounts_list.setItemWidget(item, widget)
-
-

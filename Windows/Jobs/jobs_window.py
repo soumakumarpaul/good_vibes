@@ -38,6 +38,15 @@ class Jobs(QWidget):
         self.init_shortcuts()
         self.init_widgets()
 
+    def closeEvent(self, event):
+        if not self.is_job_saved:
+            if QMessageBox.question(self, 
+                                    "Exit Confirmation", "Close without Saving the job?",
+                                    QMessageBox.Yes | QMessageBox.No,
+                                    QMessageBox.No) == QMessageBox.Yes:
+                event.ignroe()
+        event.accept() 
+
     def init_shortcuts(self):
         exit_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
         exit_shortcut.setContext(Qt.WindowShortcut)
@@ -80,12 +89,29 @@ class Jobs(QWidget):
             else:
                 Job = Query()
                 jobs_db.update(self.job_details, Job._id == self.job_details["_id"])
-            QMessageBox.information(self, "Save Successful", "The Job is successfully saved.", QMessageBox.Ok)
+            QMessageBox.information(self, "Save Successful", 
+                                    "The Job is successfully saved.", 
+                                    QMessageBox.Ok)
             self.is_job_saved = True
 
     def invoice(self):
+        if not self.job_details['customer']:
+            reply = QMessageBox.question(self, "Save Confirmation", 
+                                 "No Customer Provided. Proceed Anyway?", 
+                                 QMessageBox.Yes | QMessageBox.No, 
+                                 QMessageBox.No)
+            if reply == QMessageBox.No:
+                return
+        for service in self.job_details['services']:
+            if service['server'] == "":
+                reply = QMessageBox.question(self, "Save Confirmation",
+                                             "HairDressers/Beauticians not assigned to services. Proceed Anyway?",
+                                             QMessageBox.Yes | QMessageBox.No,
+                                             QMessageBox.No)
+                if reply == QMessageBox.No:
+                    return
         if len(self.job_details['services']) == 0:
-            QMessageBox.information(self, "Save Job", "Please add service in Job", QMessageBox.Ok)
+            QMessageBox.information(self, "Save Job", "No Services Added.", QMessageBox.Ok)
         else:
             self.save()
             invoice = Invoice(self.file_path, self.job_details)

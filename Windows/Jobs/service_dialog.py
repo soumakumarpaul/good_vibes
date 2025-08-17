@@ -241,7 +241,6 @@ class ServiceDialog(QDialog):
                                      "Invalid Value", 
                                      f"Error {e}. Please enter Number for rate, quanity and discount.")
 
-
     def compute_net_amount(self, discount: str):
         if (self.txt_price.text().strip() != "" and 
             self.txt_qty.text().strip() != "" and 

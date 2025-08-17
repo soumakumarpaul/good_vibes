@@ -20,7 +20,6 @@ class Invoice(QDialog):
         self.net_amount = self.job_details.get('net_amount', 0)
         self.init_shortcuts()
         self.init_widgets()
-        self.init_customer_credits()
         self.init_customer_advance()
 
     def init_shortcuts(self):
@@ -28,9 +27,13 @@ class Invoice(QDialog):
         exit_shortcut.setContext(Qt.WindowShortcut)
         exit_shortcut.activated.connect(self.exit)
 
-        save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        save_shortcut = QShortcut(QKeySequence("Return"), self)
         save_shortcut.setContext(Qt.WindowShortcut)
         save_shortcut.activated.connect(self.save_invoice)
+
+        complete_shortcut = QShortcut(QKeySequence("Enter"), self)
+        complete_shortcut.setContext(Qt.WindowShortcut)
+        complete_shortcut.activated.connect(self.save_invoice)
 
         invoice_shortcut = QShortcut(QKeySequence("Ctrl+P"), self)
         invoice_shortcut.setContext(Qt.WindowShortcut)
@@ -124,19 +127,6 @@ class Invoice(QDialog):
             }
         """
 
-        #membership credit
-        members_layout = QVBoxLayout()
-        members_layout.setContentsMargins(0,0,0,0)
-        members_layout.setSpacing(0)
-        members_label = QLabel("Loyalty Credit")
-        members_label.setStyleSheet(input_field_label)
-        self.txt_members = QLineEdit("0.00")
-        self.txt_members.setPlaceholderText("0.00")
-        self.txt_members.setStyleSheet(input_field_style)
-        self.txt_members.textChanged.connect(self.compute_payment)
-        members_layout.addWidget(members_label)
-        members_layout.addWidget(self.txt_members)
-
         #Advance
         advance_layout = QVBoxLayout()
         advance_layout.setContentsMargins(0, 0, 0, 0)
@@ -190,11 +180,26 @@ class Invoice(QDialog):
         card_layout.addWidget(card_label)
         card_layout.addWidget(self.txt_card)
 
-        form_layout.addLayout(members_layout)
-        form_layout.addLayout(advance_layout)
-        form_layout.addLayout(cash_layout)
+        # Credit Layout
+        credit_layout = QVBoxLayout()
+        credit_layout.setContentsMargins(0,0,0,0)
+        credit_layout.setSpacing(0)
+        credit_label = QLabel("Credit")
+        credit_label.setStyleSheet(input_field_label)
+        self.txt_credit = QLineEdit("0.00")
+        self.txt_credit.setPlaceholderText("0.00")
+        self.txt_credit.setStyleSheet(input_field_style)
+        self.txt_credit.textEdited.connect(self.compute_payment)
+        credit_layout.addWidget(credit_label)
+        credit_layout.addWidget(self.txt_credit)
+
+        self.txt_upi.setFocus()
+        
         form_layout.addLayout(upi_layout)
+        form_layout.addLayout(cash_layout)
         form_layout.addLayout(card_layout)
+        form_layout.addLayout(credit_layout)
+        form_layout.addLayout(advance_layout)
 
         return form_container
 
@@ -240,14 +245,14 @@ class Invoice(QDialog):
 
     def compute_payment(self, amount):
         if (self.txt_advance.text().strip != "" and 
-            self.txt_members.text().strip() != "" and
+            self.txt_credit.text().strip() != "" and
             self.txt_card.text().strip() != "" and
             self.txt_cash.text().strip() != "" and
             self.txt_upi.text().strip() != ""):
             try:
                 self.net_amount = (float(self.job_details['net_amount']) - 
                                 (float(self.txt_advance.text()) + 
-                                    float(self.txt_members.text()) + 
+                                    float(self.txt_credit.text()) + 
                                     float(self.txt_card.text()) + 
                                     float(self.txt_cash.text()) + 
                                     float(self.txt_upi.text())))
@@ -267,25 +272,10 @@ class Invoice(QDialog):
         else:
             self.txt_advance.setText('0.00')
 
-    def init_customer_credits(self):
-        customer_info = self.job_details['customer']
-        if customer_info:
-            isMember = customer_info.get("membership", {})
-            if isMember:
-                expiry = isMember.get("expiry", None)
-                if expiry:
-                    expiry = datetime.strptime(expiry, "%Y-%m-%d").date()
-                    if expiry <= datetime.today():
-                        member_amt = isMember.get("amount", 0)
-                        discount = (float(self.net_amount)*20)/100
-                        if discount < member_amt:
-                            self.txt_members.setText(f"{discount}:.2f")
-                        else:
-                            self.txt_members.setText(f"{member_amt}:.2f")
-        else:
-            self.txt_members.setText('0.00')
-
     def save_invoice(self):
+        if float(self.txt_credit.text().strip()) > 0 and not self.job_details['customer']:
+            QMessageBox.critical(self, "Invoice", "Credit cannot be provided without customer details")
+            return
         if float(self.net_amount != 0):
             QMessageBox.information(self, "Error", "Please update payment methods carefully")
             return
@@ -295,7 +285,7 @@ class Invoice(QDialog):
                 "card": self.txt_card.text(),
                 "advance": self.txt_advance.text(),
                 "upi": self.txt_upi.text(),
-                "credits": self.txt_members.text()
+                "credits": self.txt_credit.text()
             }
         }
         if self.update_customer_info():
@@ -313,7 +303,7 @@ class Invoice(QDialog):
         cash_amount = float(self.txt_cash.text())
         card_amount = float(self.txt_card.text())
         upi_amount = float(self.txt_upi.text())
-        credit_amount = float(self.txt_members.text())
+        credit_amount = float(self.txt_credit.text())
         if cash_amount > 0:
             self.record_expenses("cash", cash_amount, invoice_id)
         if card_amount > 0:
@@ -341,13 +331,16 @@ class Invoice(QDialog):
         customer = self.job_details.get("customer", None)
         services = self.job_details.get("services", None)
         advance_payment = 0
+        credits_payment = 0
         for service in services:
             if service['type'] == "advance":
                 advance_payment = service['price']
+            if service['type'] == "credit":
+                credits_payment = service['price']
         if customer:
             advance_payment = float(advance_payment) + float(customer.get('advance', 0)) - float(self.txt_advance.text())
+            credits = float(customer.get('credits', 0)) + float(self.txt_credit.text()) - credits_payment
             db = TinyDB(self.folder_path + "/customers_db.json")
-            credits = float(self.txt_members.text()) + float(customer.get('credits', 0))
             Customers = Query()
             customer_id = customer['_id']
             db.update({"advance": advance_payment, 'credit': credits}, Customers._id == customer_id)
