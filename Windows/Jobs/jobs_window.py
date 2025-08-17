@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGridLayout, QListView, QListWidget, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout, QMessageBox, QListWidgetItem
+from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QGridLayout, QListView, QListWidget, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout, QMessageBox, QListWidgetItem
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QKeySequence, QShortcut
 from PySide6.QtCore import Qt, Signal
 from tinydb import TinyDB, Query
@@ -37,14 +37,19 @@ class Jobs(QWidget):
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.init_shortcuts()
         self.init_widgets()
+        self.activateWindow()
+        self.raise_()
+        self.cust_phone.setFocus()
+        self.cust_phone.setCursorPosition(0)
+        self.cust_phone.selectAll()
 
     def closeEvent(self, event):
         if not self.is_job_saved:
             if QMessageBox.question(self, 
                                     "Exit Confirmation", "Close without Saving the job?",
                                     QMessageBox.Yes | QMessageBox.No,
-                                    QMessageBox.No) == QMessageBox.Yes:
-                event.ignroe()
+                                    QMessageBox.No) == QMessageBox.No:
+                event.ignore()
         event.accept() 
 
     def init_shortcuts(self):
@@ -146,17 +151,10 @@ class Jobs(QWidget):
                 self.customer_info['advance'] = results[0].get('advance', 0)
                 self.customer_advance_btn.setEnabled(True)
                 self.customer_name_field.setText(self.customer_info.get("name", ""))
-                membership_details = self.customer_info.get("membership", {})
-                validity = membership_details.get("expiry", "")
-                self.membership_points.setText(f"Points: {membership_details.get("points", 0)} [Validity: {validity}]")
                 self.customer_advance_btn.setEnabled(True)
-                isNotMember = (membership_details.get('points', 0)) ==  0
-                if isNotMember:
-                    self.customer_loyalty_btn.setEnabled(True)
             db.close()
         else:
             self.customer_advance_btn.setEnabled(False)
-            self.customer_loyalty_btn.setEnabled(False)
 
     def get_new_customer(self, data):
         if data != None:
@@ -194,6 +192,10 @@ class Jobs(QWidget):
         header_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         return header_label
     
+    def paste_customer(self):
+        clipboard = QApplication.clipboard()
+        self.cust_phone.setText(clipboard.text())
+
     def init_customer(self):
         customer_container = QWidget()
         customer_container.setContentsMargins(0, 0, 0, 0)
@@ -215,6 +217,8 @@ class Jobs(QWidget):
             }
         """)
         customer_phone.textChanged.connect(self.get_customer_info)
+        customer_phone.returnPressed.connect(self.paste_customer)
+        self.cust_phone = customer_phone
 
         customer_layout.addWidget(customer_phone)
 
@@ -247,7 +251,7 @@ class Jobs(QWidget):
         """)
         self.membership_points = customer_points
 
-        #customer loyalty section
+        #customer advance section
         loyalty_layout = QHBoxLayout()
         btn_style = """
             QPushButton {
@@ -263,18 +267,12 @@ class Jobs(QWidget):
                 color: #7851a9;
             }
         """
-        self.customer_loyalty_btn = QPushButton("Add Membership")
-        self.customer_loyalty_btn.setEnabled(False)
-        self.customer_loyalty_btn.setStyleSheet(btn_style)
-        self.customer_loyalty_btn.setCursor(Qt.PointingHandCursor)
-        self.customer_loyalty_btn.clicked.connect(self.pop_membership_dialog)
 
         self.customer_advance_btn = QPushButton("Advance")
         self.customer_advance_btn.setEnabled(False)
         self.customer_advance_btn.setStyleSheet(btn_style)
         self.customer_advance_btn.setCursor(Qt.PointingHandCursor)
         self.customer_advance_btn.clicked.connect(self.pop_advance_dialog)
-        loyalty_layout.addWidget(self.customer_loyalty_btn)
         loyalty_layout.addWidget(self.customer_advance_btn)
 
         customer_info_layout.addWidget(self.customer_name_field)
