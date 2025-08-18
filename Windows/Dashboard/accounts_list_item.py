@@ -3,15 +3,14 @@ from PySide6.QtCore import Qt
 
 class AccountsItemWidget(QWidget):
 
-    def __init__(self, expense_details):
+    def __init__(self, job_details):
         super().__init__()
-        self.expense = expense_details
+        self.job = job_details
         self.setMouseTracking(True)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5,5,5,5)
         layout.setSpacing(0)
         layout.addWidget(self.init_header())
-        layout.addLayout(self.init_sub_row())
 
     def init_header(self):
         header_container = QWidget()
@@ -20,49 +19,42 @@ class AccountsItemWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        debit_lbl_style = """
+        completed_lbl_style = """
             QLabel {
-                font-size: 16px;
+                font-size: 24px;
                 font-weight: bold;
                 color: #FF0800;
             }
         """
 
-        credit_lbl_style = """
+        progress_lbl_style = """
             QLabel {
-                font-size: 16px;
+                font-size: 24px;
                 font-weight: bold;
                 color: #2E6f40;
             }
         """
-        expense_txt = QLabel(self.expense.get("purpose", ""))
-        amount_txt = QLabel("{:.2f}".format(float(self.expense.get("amount", 0.00))))
-        if self.expense['type'] == 'debit':
-            expense_txt.setStyleSheet(debit_lbl_style)
-            amount_txt.setStyleSheet(debit_lbl_style)
-        else:
-            expense_txt.setStyleSheet(credit_lbl_style)
-            amount_txt.setStyleSheet(credit_lbl_style)
-        layout.addWidget(expense_txt, 1)
-        layout.addWidget(amount_txt)
 
-        return header_container
-    
-    def init_sub_row(self):
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        debit_lbl_style = """
+        lbl_style = """
             QLabel {
-                font-size: 12px;
+                font-size: 24px;
                 font-weight: bold;
-                color: #2c2c2c;
+                color: #7851a9;
             }
         """
-        date_txt = QLabel(self.expense.get("date"))
-        date_txt.setStyleSheet(debit_lbl_style)
-        type_txt = QLabel(self.expense.get("method"))
-        type_txt.setStyleSheet(debit_lbl_style)
-        layout.addWidget(date_txt, 1)
-        layout.addWidget(type_txt)
-        return layout
+        customer = f"{self.job['customer'].get('name', "")} - {self.job['customer'].get('phone', "")}"
+        job_txt = QLabel(self.job.get("_id", ""))
+        job_txt.setStyleSheet(lbl_style)
+        customer_txt = QLabel(customer)
+        customer_txt.setStyleSheet(lbl_style)
+        status = "In Progress" if self.job['isComplete'] == False else "Completed"
+        status_txt = QLabel(status)
+        if status == 'Completed':
+            status_txt.setStyleSheet(completed_lbl_style)
+        else:
+            status_txt.setStyleSheet(progress_lbl_style)
+        layout.addWidget(job_txt)
+        layout.addWidget(customer_txt)
+        layout.addWidget(status_txt)
+
+        return header_container
