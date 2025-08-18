@@ -170,6 +170,7 @@ class Invoice(QDialog):
         self.txt_upi.textEdited.connect(self.compute_payment)
         upi_layout.addWidget(upi_label)
         upi_layout.addWidget(self.txt_upi)
+        self.txt_upi.setFocusPolicy(Qt.StrongFocus)
 
         # Card
         card_layout = QVBoxLayout()
@@ -309,7 +310,7 @@ class Invoice(QDialog):
             self.exit()
 
     def generate_invoice_id(self):
-        counter = Counters(self.file_path)
+        counter = Counters(self.folder_path)
         now = datetime.now()
         month = f"{now.month:02d}"
         year = now.year

@@ -32,7 +32,7 @@ class Dashboard(QWidget):
         dashboard_layout = QHBoxLayout()
 
         #Add Jobs Layout
-        dashboard_layout.addWidget(self.init_jobs_layout(), alignment=Qt.AlignTop)
+        dashboard_layout.addWidget(self.init_jobs_layout(), alignment=Qt.AlignTop, stretch=1)
         main_layout.addLayout(dashboard_layout)
         self.setLayout(main_layout)
 
@@ -56,62 +56,65 @@ class Dashboard(QWidget):
     def init_jobs_layout(self):
         jobs_container = QWidget()
         jobs_container.setMinimumWidth(400)
-        jobs_layout = QGridLayout(jobs_container)
+        jobs_layout = QVBoxLayout(jobs_container)
         jobs_layout.setSpacing(0)
         jobs_layout.setContentsMargins(0, 0, 0, 0)
 
         btn_style = """
             QPushButton {
-                background-color: #FFFFFF;
+                background-color: #C0C0C0;
                 font-size: 18px;
                 font-weight: bold;
                 color: #7851a9;
-                border: 1px solid #C0C0C0;
+                border: 5px solid #FFFFFF;
                 padding: 10px;
-                margin: 10px;
             }
             QPushButton:hover {
                 color: #FFFFFF;
                 background-color: #7851a9;
-                border: 1px solid #C0C0C0;
+                border: 5px solid #C0C0C0;
             }
         """
-
-        disabled_btn = """
-            QPushButton {
-                background-color: #C0C0C0;
-                font-size: 18px;
-                font-weight: bold;
-                color: #2c2c2c;
-                border: 1px solid #FFFFFF;
-                padding: 10px;
-                margin: 10px;
-            }   
-        """
-        new_job = QPushButton("[+] New Job")
+        new_job = QPushButton("[+] New Job [Ctrl+N]")
         new_job.setCursor(Qt.PointingHandCursor)
-        new_job.setMaximumWidth(350)
         new_job.setStyleSheet(btn_style)
-        new_job.clicked.connect(lambda checked = False, details=None: self.initate_job(details))
+        new_job.clicked.connect(lambda checked = False, details=None: self.initiate_job(details))
         jobs_layout.addWidget(new_job)
-        for index, job in enumerate(self.job_details):
-            row = (index + 1) // 3
-            col = (index + 1) % 3
-            btn_text = job['_id'] if not job['customer'] else f"{job['customer'].get('name', '')}"
-
-            btn = QPushButton(btn_text)
-            btn.setMaximumWidth(350)
-            if job['isComplete'] == True:
-                btn.setEnabled(False)
-            if job.get('customer'):
-                btn.setToolTip(f"{job['customer'].get('name', '')} - {job['customer'].get('phone', '')}")
-            btn.setStyleSheet(btn_style)
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.clicked.connect(lambda checked = False, details=job: self.initate_job(details))
-            jobs_layout.addWidget(btn, row, col)
+        jobs_layout.addWidget(self.list_jobs(), 1)
         
         return jobs_container
     
-    def initate_job(self, job_details = None):
-        self.dashboard_response.emit(job_details)
+    def list_jobs(self):
+        self.job_list = QListWidget()
+        self.job_list.setStyleSheet("""
+            QListWidget {
+                background-color: #ffffff;
+                border: 1px solid #7851a9;
+            }
+            QListWidget::item {
+                border-bottom: 1px solid #7851a9;
+            }
+            QListWidget::item:selected {
+                background-color: #f2f2f2;
+            }
+        """)
+        for job in self.job_details:
+            self.add_jobs_to_list(job)
+        self.job_list.itemClicked.connect(self.initiate_job)
+        return self.job_list
+
+    def add_jobs_to_list(self, job):
+        item = QListWidgetItem()
+        widget = AccountsItemWidget(job_details=job)
+        widget.adjustSize()
+        item.setSizeHint(widget.sizeHint())
+        self.job_list.addItem(item)
+        self.job_list.setItemWidget(item, widget)
+
+    def initiate_job(self, item = None):
+        job = self.job_list.itemWidget(item).job if item else None
+        if job:
+            if job['isComplete'] == True:
+                return
+        self.dashboard_response.emit(job)
         self.close()
