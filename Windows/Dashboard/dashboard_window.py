@@ -2,6 +2,7 @@ from PySide6.QtWidgets import (QWidget, QPushButton,
                                QVBoxLayout, QListWidget, QListWidgetItem,
                                QHBoxLayout, QGridLayout, QLabel, QSizePolicy)
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QShortcut, QKeySequence
 from tinydb import TinyDB, Query
 from datetime import date
 from .accounts_list_item import AccountsItemWidget
@@ -13,7 +14,13 @@ class Dashboard(QWidget):
         self.file_path = file_path
         self.job_details = self.init_jobs()
         self.revenue = 0
+        self.init_shortcuts()
         self.init_widgets()
+
+    def init_shortcuts(self):
+        job_shortcut = QShortcut(QKeySequence("Ctrl+N"), self)
+        job_shortcut.setContext(Qt.WindowShortcut)
+        job_shortcut.activated.connect(self.initiate_job)
 
     def init_jobs(self):
         db = TinyDB(self.file_path + "/jobs_db.json")
@@ -32,7 +39,7 @@ class Dashboard(QWidget):
         dashboard_layout = QHBoxLayout()
 
         #Add Jobs Layout
-        dashboard_layout.addWidget(self.init_jobs_layout(), alignment=Qt.AlignTop, stretch=1)
+        dashboard_layout.addWidget(self.init_jobs_layout(), stretch=1)
         main_layout.addLayout(dashboard_layout)
         self.setLayout(main_layout)
 
@@ -65,17 +72,17 @@ class Dashboard(QWidget):
                 background-color: #C0C0C0;
                 font-size: 18px;
                 font-weight: bold;
-                color: #7851a9;
-                border: 5px solid #FFFFFF;
+                color: #2c2c2c;
+                border: 5px solid #2c2c2c;
                 padding: 10px;
             }
             QPushButton:hover {
                 color: #FFFFFF;
                 background-color: #7851a9;
-                border: 5px solid #C0C0C0;
+                border: 5px solid #2c2c2c;
             }
         """
-        new_job = QPushButton("[+] New Job [Ctrl+N]")
+        new_job = QPushButton("[+]New[Ctrl+N]")
         new_job.setCursor(Qt.PointingHandCursor)
         new_job.setStyleSheet(btn_style)
         new_job.clicked.connect(lambda checked = False, details=None: self.initiate_job(details))
