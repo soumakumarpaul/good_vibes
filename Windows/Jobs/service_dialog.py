@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QSizePolicy, QWidget, QLineEdit, QHBoxLayout, QComboBox, QPushButton, QMessageBox
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QShortcut, QKeySequence
-from tinydb import TinyDB
+from tinydb import TinyDB, Query
 from Windows.General.select_box import SelectBox
 
 class ServiceDialog(QDialog):
@@ -338,7 +338,8 @@ class ServiceDialog(QDialog):
     # Get the employee names
     def init_employees(self):
         employee_db = TinyDB(self.db_path + "/employee_db.json")
-        return employee_db.all()
+        Employee = Query()
+        return employee_db.search(Employee.isEmployed == True)
     
     # Close the dialog.
     def exit(self):
