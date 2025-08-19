@@ -4,7 +4,6 @@ from PySide6.QtGui import QShortcut, QKeySequence
 from Utilities.environments import Environment
 from Windows.Customers.customer_window import Customers
 from Windows.Employees.employee_window import Employee
-from Windows.Catalog.catalog_window import CatalogWindow
 from Windows.Dashboard.dashboard_window import Dashboard
 from Windows.Expenses.expense_dialog import Expense
 from Windows.Jobs.jobs_window import Jobs
@@ -161,11 +160,7 @@ class MainWindow(QWidget):
         self.window_layout.addWidget(self.customer_window)
 
     def open_catalog(self):
-        if not self.is_set():
-            return
-        self.clear_layout()
-        self.catalog_window = CatalogWindow(self.folder_path)
-        self.window_layout.addWidget(self.catalog_window)
+        pass
 
     def exit(self):
         self.close()
