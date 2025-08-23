@@ -171,8 +171,8 @@ class NewEmployee(QDialog):
     def save_employee(self):
         employee = {
             "_id": self.generate_id(),
-            "name": self.employee_name.text().strip(),
-            "mobile": self.phone_number.text().strip(),
+            "name": self.employee_name.text().strip().title(),
+            "mobile": f"+91-{self.phone_number.text().strip()}",
             "isEmployed": True
         }
         employee_db = TinyDB(self.db + "/employee_db.json")
