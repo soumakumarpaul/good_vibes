@@ -390,6 +390,9 @@ class Jobs(QWidget):
             service['type'] = item_type
         self.service_results = services
         self.search_services()
+        self.search_input.setFocus()
+        self.search_input.setCursorPosition(0)
+        self.search_input.selectAll()
 
     def clear_sub_layout(self):
         while self.sub_cat_layout.count():
@@ -462,9 +465,6 @@ class Jobs(QWidget):
             model.appendRow(service_item)
         self.service_list_model = model
         self.services_list.setModel(model)
-        self.search_input.setFocus()
-        self.search_input.setCursorPosition(0)
-        self.search_input.selectAll()
 
     # Select the service from the service picker
     def on_service_selected(self, index):

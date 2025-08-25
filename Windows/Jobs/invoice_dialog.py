@@ -27,7 +27,7 @@ class Invoice(QDialog):
         self.txt_upi.setCursorPosition(len(self.txt_upi.text()))
 
     def init_shortcuts(self):
-        exit_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
+        exit_shortcut = QShortcut(QKeySequence("Esc"), self)
         exit_shortcut.setContext(Qt.WindowShortcut)
         exit_shortcut.activated.connect(self.exit)
 
@@ -38,10 +38,6 @@ class Invoice(QDialog):
         complete_shortcut = QShortcut(QKeySequence("Enter"), self)
         complete_shortcut.setContext(Qt.WindowShortcut)
         complete_shortcut.activated.connect(self.save_invoice)
-
-        invoice_shortcut = QShortcut(QKeySequence("Ctrl+P"), self)
-        invoice_shortcut.setContext(Qt.WindowShortcut)
-        invoice_shortcut.activated.connect(self.print_invoice)
 
     def init_widgets(self):
         main_layout = QVBoxLayout()
@@ -230,18 +226,14 @@ class Invoice(QDialog):
         self.save_button.setStyleSheet(buttons_style)
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setStyleSheet(buttons_style)
-        self.print_button = QPushButton("Print")
-        self.print_button.setStyleSheet(buttons_style)
 
         self.cancel_button.clicked.connect(self.exit)
         self.save_button.clicked.connect(self.save_invoice)
-        self.print_button.clicked.connect(self.print_invoice)
 
         # layout
         buttons_layout = QHBoxLayout(actions_container)
         buttons_layout.setContentsMargins(0,0,0,0)
         buttons_layout.setSpacing(0)
-        buttons_layout.addWidget(self.print_button)
         buttons_layout.addWidget(self.save_button)
         buttons_layout.addWidget(self.cancel_button)
         return actions_container
@@ -369,6 +361,3 @@ class Invoice(QDialog):
     def exit(self):
         self.invoice_response.emit(False)
         self.close()
-
-    def print_invoice(self):
-        pass     
