@@ -129,7 +129,7 @@ class ServiceDialog(QDialog):
         qty_layout.setSpacing(5)
         quantity_lbl = QLabel("Quantity")
         quantity_lbl.setStyleSheet(input_field_label)
-        self.txt_qty = QLineEdit(self.service_details.get("quanity", 0.00))
+        self.txt_qty = QLineEdit(self.service_details.get("quantity", "1.00"))
         self.txt_qty.setPlaceholderText("0.00")
         self.txt_qty.setStyleSheet(input_field_style)
         self.txt_qty.textEdited.connect(self.compute_service)

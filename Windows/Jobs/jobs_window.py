@@ -319,7 +319,7 @@ class Jobs(QWidget):
                 border: 1px solid #2c2c2c;
             }
         """)
-        search_bar.returnPressed.connect(lambda text: self.search_services(text))
+        search_bar.returnPressed.connect(self.search_services)
         self.search_input = search_bar
 
         self.services_list = QListView()
@@ -356,7 +356,7 @@ class Jobs(QWidget):
 
     def search_services(self, search_keyword: str = ""):
         model: QStandardItemModel = QStandardItemModel()
-        keyword = search_keyword.strip().lower()
+        keyword = self.search_input.text().strip().lower()
         if keyword == "":
             items = self.catalog
         else:
@@ -462,6 +462,7 @@ class Jobs(QWidget):
             service = self.job_details['services'][index]
             service['rate'] = service_data['rate']
             service['discount'] = service_data['discount']
+            service['quantity'] = service_data['quantity']
             service['price'] = service_data['price']
             service['server'] = service_data['server']
             service['helper'] = service_data['helper']
