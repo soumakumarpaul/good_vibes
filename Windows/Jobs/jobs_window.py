@@ -553,6 +553,7 @@ class Jobs(QWidget):
             service = self.job_details['services'][index]
             service['rate'] = service_data['rate']
             service['discount'] = service_data['discount']
+            service['quantity'] = service_data['quantity']
             service['price'] = service_data['price']
             service['server'] = service_data['server']
             service['helper'] = service_data['helper']
