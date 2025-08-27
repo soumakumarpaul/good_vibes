@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QGridLayout, QListView, QListWidget, QLineEdit, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout, QMessageBox, QListWidgetItem
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QKeySequence, QShortcut
-from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtCore import Qt, Signal, QTimer, QModelIndex
 from tinydb import TinyDB, Query
 from PySide6.QtWidgets import QAbstractItemView
 import re
@@ -33,15 +33,16 @@ class Jobs(QWidget):
             self.job_details = job_details
         self.catalog = []
         self.customer_info = {}
-        self.service_results = []
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.init_shortcuts()
         self.init_widgets()
         self.activateWindow()
         self.raise_()
-        QTimer.singleShot(0, self.cust_phone.setFocus)
-        self.cust_phone.selectAll()
-        self.cust_phone.setCursorPosition(0)
+        QTimer.singleShot(0, self.search_input.setFocus)
+        self.search_input.selectAll()
+        self.search_input.setCursorPosition(0)
+        self.init_catalog()
+        self.search_services()
 
     def closeEvent(self, event):
         if not self.is_job_saved:
@@ -100,25 +101,10 @@ class Jobs(QWidget):
             self.is_job_saved = True
 
     def invoice(self):
-        for service in self.job_details['services']:
-            if service['server'] == "":
-                reply = QMessageBox.question(self, "Save Confirmation",
-                                             "HairDressers/Beauticians not assigned to services. Proceed Anyway?",
-                                             QMessageBox.Yes | QMessageBox.No,
-                                             QMessageBox.No)
-                if reply == QMessageBox.No:
-                    return
         if len(self.job_details['services']) == 0:
             QMessageBox.information(self, "Save Job", "No Services Added.", QMessageBox.Ok)
         else:
             self.save()
-            if self.job_details.get('customer', {}) == {}:
-                reply = QMessageBox.question(self, "Save Confirmation", 
-                                 "No Customer Provided. Proceed Anyway?", 
-                                 QMessageBox.Yes | QMessageBox.No, 
-                                 QMessageBox.No)
-                if reply == QMessageBox.No:
-                    return
             invoice = Invoice(self.file_path, self.job_details)
             invoice.invoice_response.connect(self.execute_invoice)
             invoice.exec()
@@ -180,7 +166,7 @@ class Jobs(QWidget):
         header_label.setTextFormat(Qt.RichText)
         header_label.setStyleSheet("""
             QLabel {
-                background-color: #7851a9;
+                background-color: #000000;
                 color: #ffffff;
                 font-size: 14px;
                 padding: 20px;
@@ -212,7 +198,7 @@ class Jobs(QWidget):
                 font-size: 16px;
                 background-color: #FFFFFF;
                 font-weight: bold;
-                color: #7851a9;
+                color: #000000;
                 border: 1px solid #2c2c2c;
             }
         """)
@@ -231,8 +217,8 @@ class Jobs(QWidget):
                 font-weight: bold;
                 padding: 10px;
                 background-color: #ccaff0;
-                color: #7851a9;
-                border: 1px solid #7851a9;
+                color: #000000;
+                border: 1px solid #000000;
                 margin-top: 5px;
             }
         """)
@@ -245,8 +231,8 @@ class Jobs(QWidget):
                 font-weight: bold;
                 padding: 10px;
                 background-color: #ccaff0;
-                color: #7851a9;
-                border: 1px solid #7851a9;
+                color: #000000;
+                border: 1px solid #000000;
                 margin-top: 5px;
             }
         """)
@@ -258,14 +244,14 @@ class Jobs(QWidget):
             QPushButton {
                 font-size: 14px;
                 font-weight: bold;
-                background-color: #7851a9;
+                background-color: #000000;
                 color: #FFFFFF;
                 border: 1px solid #C0C0C0;
                 padding: 10px;
             }
             QPushButton:hover {
                 background-color: #C0C0C0;
-                color: #7851a9;
+                color: #000000;
             }
         """
 
@@ -311,95 +297,10 @@ class Jobs(QWidget):
         service_container.setStyleSheet("border: 1px solid #ffffff;")
         layout = QHBoxLayout(service_container)
         layout.setSpacing(0)
-        layout.addWidget(self.init_catalog_category())
-
-        #initialize sub category layout
-        sub_cat_container = QWidget()
-        sub_cat_container.setFixedWidth(300)
-        self.sub_cat_layout = QGridLayout(sub_cat_container)
-        self.sub_cat_layout.setContentsMargins(0, 0, 0, 0)
-        self.sub_cat_layout.setSpacing(0)
-
-        layout.addWidget(sub_cat_container)
 
         layout.addLayout(self.init_services())
 
         return service_container
-
-    def init_catalog_category(self):
-        self.init_catalog()
-        category_container = QWidget()
-        category_layout = QVBoxLayout(category_container)
-        category_layout.setContentsMargins(0, 0, 0, 0)
-        category_layout.setSpacing(0)
-
-        button_styles = """
-            QPushButton{
-            font-size: 14px;
-            font-weight: bold;
-            color: #FFFFFF;
-            background-color: #2c2c2c;
-            border: 1px solid #FFFFFF;
-            padding: 5px;
-            }
-        """
-
-        for category in self.catalog:
-            category_name = category.get("category", "").replace(" ", "\n")
-            button = QPushButton(category_name)
-            
-            button.setStyleSheet(button_styles)
-            button.clicked.connect(partial(self.init_sub_category, category.get("catalog", [])))
-            button.setFixedWidth(120)
-            button.setCursor(Qt.PointingHandCursor)
-            button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-            category_layout.addWidget(button, stretch=1)
-        return category_container
-
-    def init_sub_category(self, catalog = []):
-        self.clear_sub_layout()
-        button_styles = """
-            QPushButton{
-            font-size: 14px;
-            font-weight: bold;
-            color: #FFFFFF;
-            background-color: #7851a9;
-            border: 1px solid #FFFFFF;
-            padding: 10px;
-            }
-        """
-        for index, category in enumerate(catalog):
-            sub_category = category.get("sub-category", "").replace(" ", "\n")
-            type = category.get("type", "service")
-            button = QPushButton(sub_category)
-            button.setStyleSheet(button_styles)
-            button.setFixedWidth(150)
-            button.setCursor(Qt.PointingHandCursor)
-            button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-            button.clicked.connect(partial(self.get_services, 
-                                           category.get("services", []),
-                                           category.get("sub-category", ""),
-                                           type))
-            row = index // 2
-            col = index % 2
-            self.sub_cat_layout.addWidget(button, row, col)
-
-    def get_services(self, services = [], sub_category = "", item_type = "service"):
-        for service in services:
-            service['category'] = sub_category
-            service['type'] = item_type
-        self.service_results = services
-        self.search_services()
-        self.search_input.setFocus()
-        self.search_input.setCursorPosition(0)
-        self.search_input.selectAll()
-
-    def clear_sub_layout(self):
-        while self.sub_cat_layout.count():
-            item = self.sub_cat_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
 
     def init_services(self, services = []):
         services_layout = QVBoxLayout()
@@ -414,11 +315,11 @@ class Jobs(QWidget):
                 font-size: 16px;
                 background-color: #FFFFFF;
                 font-weight: bold;
-                color: #7851a9;
+                color: #000000;
                 border: 1px solid #2c2c2c;
             }
         """)
-        search_bar.textEdited.connect(lambda text: self.search_services(text))
+        search_bar.textChanged.connect(lambda text: self.search_services(text))
         self.search_input = search_bar
 
         self.services_list = QListView()
@@ -431,7 +332,7 @@ class Jobs(QWidget):
             QListView::item {
                 padding: 5px;
                 border-bottom: 1px solid #2c2c2c;
-                color: #7851a9;
+                color: #000000;
                 font-weight: bold;
             }
             QListView::item:hover {
@@ -455,19 +356,26 @@ class Jobs(QWidget):
 
     def search_services(self, search_keyword: str = ""):
         model: QStandardItemModel = QStandardItemModel()
-        keyword = search_keyword.strip().lower().split()
-        items = [item for item in self.service_results
-                 if all(word in item.get("service", "").lower() for word in keyword)]
+        keyword = search_keyword.strip().lower()
+        if keyword == "":
+            items = self.catalog
+        else:
+            items = [item for item in self.catalog if item.get("id", 0) == int(keyword)]
         for item in items:
-            service_item = QStandardItem(item["service"])
-            service_item.setToolTip(f"{item['category']} - {item["service"]}")
+            service_item = QStandardItem(f"{item["product"]} -  {item['description']}")
+            service_item.setToolTip(f"{item['description']}")
             service_item.setData(item, Qt.UserRole)
             model.appendRow(service_item)
         self.service_list_model = model
         self.services_list.setModel(model)
+        if len(items) == 1:
+            index = model.index(0, 0)
+            if index.isValid():
+                self.services_list.setCurrentIndex(index)
+                self.on_service_selected(index=index)
 
     # Select the service from the service picker
-    def on_service_selected(self, index):
+    def on_service_selected(self, index: QModelIndex):
         if self.service_list_model:
             item = self.service_list_model.itemFromIndex(index)
             service_details = item.data(Qt.UserRole)
@@ -477,6 +385,7 @@ class Jobs(QWidget):
 
     # Adding service to invoice
     def add_service_invoice(self, service_data):
+        self.search_input.setText("")
         if service_data != None:
             index = len(self.job_details['services'])
             self.job_details["services"].append(service_data)
@@ -500,10 +409,10 @@ class Jobs(QWidget):
         self.invoice_list.setStyleSheet("""
         QListWidget {
             background-color: #ffffff;
-            border: 1px solid #7851a9;
+            border: 1px solid #000000;
         }
         QListWidget::item {
-            border-bottom: 1px solid #7851a9;
+            border-bottom: 1px solid #000000;
         }
         QListWidget::item:selected {
             background-color: #f2f2f2;
@@ -618,13 +527,13 @@ class Jobs(QWidget):
             QPushButton {
                 font-size: 20px;
                 font-weight: bold;
-                color: "#7851a9";
+                color: "#000000";
                 padding: 10px;
                 margin: 15px;
                 background-color: #e5c8dc;
             }
             QPushButton:hover {
-                background-color: #7851a9;
+                background-color: #000000;
                 color: #FFFFFF;
             }
         """

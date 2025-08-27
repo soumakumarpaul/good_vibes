@@ -76,7 +76,7 @@ class MainWindow(QWidget):
 
     def init_buttons(self):
         buttons_container = QWidget()
-        buttons_container.setStyleSheet("background-color: #7851a9")
+        buttons_container.setStyleSheet("background-color: #000000")
         layout = QHBoxLayout(buttons_container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -87,7 +87,7 @@ class MainWindow(QWidget):
                 font-weight: bold;
                 color: "#FFFFFF";
                 padding: 20px;
-                background-color: #9c65e0;
+                background-color: #000000;
                 border:1px solid #FFFFFF;
             }
         """

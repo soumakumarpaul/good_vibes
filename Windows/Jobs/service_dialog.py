@@ -97,7 +97,7 @@ class ServiceDialog(QDialog):
         """
 
         # Service Name
-        service_name = QLabel(self.service_details.get("service", ""))
+        service_name = QLabel(self.service_details.get("product", ""))
         service_name.setStyleSheet("""
             QLabel {
                 font-size: 20px;
@@ -320,14 +320,14 @@ class ServiceDialog(QDialog):
             alert.exec()
             return
         response = {
-                "service": self.service_details.get("service", ""),
+                "service": self.service_details.get("product", ""),
                 "rate": self.txt_price.text(),
                 "discount": self.txt_discount.text(),
                 "quantity": self.txt_qty.text(),
                 "price": self.txt_amt.text(),
                 "server": self.server_combo.currentText(),
                 "helper": self.helper_combo.currentText(),
-                "category": self.service_details.get('category', ''),
+                "category": self.service_details.get('description', ''),
                 "type": self.service_details.get('type', "service")
         }
         self.service_data.emit(response)
