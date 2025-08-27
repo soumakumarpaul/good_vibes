@@ -319,7 +319,7 @@ class Jobs(QWidget):
                 border: 1px solid #2c2c2c;
             }
         """)
-        search_bar.textChanged.connect(lambda text: self.search_services(text))
+        search_bar.returnPressed.connect(lambda text: self.search_services(text))
         self.search_input = search_bar
 
         self.services_list = QListView()
