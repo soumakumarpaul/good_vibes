@@ -135,6 +135,7 @@ class Jobs(QWidget):
 
     def get_customer_info(self, phone_number: str):
         self.customer_advance_btn.setEnabled(False)
+        self.membership_points.setText("Credits: ₹0.00")
         if re.match(r"^[6-9]\d{9}$", phone_number):
             db = TinyDB(self.file_path + "/customers_db.json")
             Customer: Query = Query()
@@ -150,8 +151,14 @@ class Jobs(QWidget):
                 self.customer_info['membership'] = results[0].get('memebership', {})
                 self.customer_info['advance'] = results[0].get('advance', 0)
                 self.customer_advance_btn.setEnabled(True)
+                advance_amt_text = f"Credits: ₹{self.customer_info['advance']}"
                 self.customer_name_field.setText(self.customer_info.get("name", ""))
+                self.membership_points.setText(advance_amt_text)
                 self.customer_advance_btn.setEnabled(True)
+                if self.customer_info['advance'] > 0:
+                    QMessageBox.information(self, 
+                                            "Advance Credit", 
+                                            f"{self.customer_info['name']} has an Advance Credit of ₹{self.customer_info['advance']}")
             db.close()
         else:
             self.customer_advance_btn.setEnabled(False)
@@ -238,7 +245,7 @@ class Jobs(QWidget):
         """)
         self.customer_name_field = customer_name
 
-        customer_points = QLabel("Points:")
+        customer_points = QLabel("Credits: ₹")
         customer_points.setStyleSheet("""
             QLabel {
                 font-size: 16px;
